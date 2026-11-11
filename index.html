@@ -80,6 +80,14 @@ button.on{background:var(--accent)}
   padding:16px max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 16px) max(16px,env(safe-area-inset-left,0px));touch-action:pan-y}
 .sheet h2{margin:0;font:700 22px/1.1 var(--f-display);text-wrap:balance}
 .sheet p{margin:4px 0 12px;font:400 12px/1.5 var(--f-mono);color:var(--ink-2);max-width:60ch}
+.botmsg{margin:10px 0 4px;font:500 12px/1.4 var(--f-mono);color:var(--ink-2);min-height:1.4em}
+.botlist{display:flex;flex-direction:column;gap:4px}
+.botrow{display:grid;grid-template-columns:2em 1fr auto;gap:2px 8px;align-items:center;padding:8px 10px;border-radius:10px;background:rgba(24,35,58,.05)}
+.botrow b{font:700 15px/1.2 var(--f-display)}
+.botrow .n{font:500 12px/1 var(--f-mono);color:var(--ink-2)}
+.botrow .d{grid-column:2/3;font:400 11px/1.4 var(--f-mono);color:var(--ink-2)}
+.botrow .bad{color:#D23A3A;font-weight:600}
+.botrow button{grid-row:1/3;grid-column:3;padding:9px 12px}
 .sh-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .sliders{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px 20px;margin-top:6px}
 .sl{display:flex;flex-direction:column;gap:4px;min-width:0}
@@ -108,6 +116,7 @@ textarea{width:100%;height:180px;font:400 11px/1.4 var(--f-mono);border:2px soli
     <div class="grp">
       <button id="bWorld" class="ghost" hidden>Mode: Level</button>
       <button id="bRestart" class="ghost" hidden>Restart</button>
+      <button id="bBot">Bot</button>
       <button id="bFeel">Feel</button>
     </div>
   </div>
@@ -147,6 +156,13 @@ textarea{width:100%;height:180px;font:400 11px/1.4 var(--f-mono);border:2px soli
     <div class="sliders" id="sliders"></div>
   </div>
 
+  <div id="botSheet" class="sheet" hidden>
+    <div class="sh-head"><h2>Level bot</h2><button id="bBotClose">Done</button></div>
+    <p>The bot plays each level to prove it can be won. <b>Window</b> is how long the trickiest tap's timing window is (smaller is harder). <b>Diff</b> adds up every tap's difficulty. <b>Shortcut</b> means the level can be won without the move it teaches. Rerun after changing Feel.</p>
+    <div class="row"><button id="bBotWatch">Watch this level</button><button id="bBotAll" class="ghost">Check all levels</button></div>
+    <div id="botMsg" class="botmsg"></div>
+    <div id="botList" class="botlist"></div>
+  </div>
   <div id="code" class="sheet" hidden>
     <div class="sh-head"><h2>Level code</h2><button id="bCodeClose">Done</button></div>
     <p>Copy this to keep a level or send it to someone. Paste a code in and press Load to replace the current level.</p>
@@ -188,6 +204,7 @@ const FEEL=[
  ['comboStep','Extra boost per chained slam',1,1.6,0.01,'×'],
  ['comboMax','Chain cap',1,8,1],
  ['late','Late-tap grace after landing',0,0.25,0.005,'s'],
+ ['lateFair','Late tap gives the same height as on time',0,1,1,'bool'],
  ['drift','Forward drift while slamming',0,1,0.05,'×'],
  ['springMult','Spring boost',1,3,0.05,'×'],
  ['brkHits','Slams to break a tough breakable',2,4,1],
@@ -202,7 +219,7 @@ const FEEL=[
  ['bounceSfx','Sound on normal bounces',0,1,1,'bool'],
  ['restartOnDeath','Dying restarts the level',0,1,1,'bool']
 ];
-const DEF={gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.05,slamMult:1.6,comboStep:1.15,comboMax:4,late:0.1,drift:0,springMult:1.7,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,skin:'boing',boingSize:1.5,showHitbox:0,fastTurn:0,fastWindow:0.35,chainReset:1,v2:1};
+const DEF={gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.05,slamMult:1.6,comboStep:1.15,comboMax:4,late:0.1,drift:0,springMult:1.7,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,skin:'boing',boingSize:1.5,showHitbox:0,fastTurn:0,fastWindow:0.35,chainReset:1,lateFair:1,v2:1};
 const TURNS=[['every','Every slam'],['chain','Every slam after the 1st'],['second','Every 2nd slam'],['never','Never']];
 const SEGS={turn:TURNS,skin:[['boing','Boing'],['ball','Shape']]};
 
@@ -231,51 +248,35 @@ function collectLocal(){const o=Object.assign({},MEM);try{for(let i=0;i<localSto
 let feel=(()=>{const s=store.get('sbl_feel')||{};if(!s.turn&&('flip' in s))s.turn=!s.flip?'never':s.double?'second':'every';delete s.flip;delete s.double;if(!s.v2){s.turn='chain';s.v2=1}return Object.assign({},DEF,s)})();
 store.set('sbl_feel',feel);
 
-function sample(){
-  let id=0;const o=(type,x,y,w)=>({id:++id,type,x,y,...(w!=null?{w}:{})});
-  return {spawn:{x:-120,y:-60,dir:1},objs:[
-    o('plat',-300,0,480),
-    o('plat',300,-40,180), o('coin',390,-140), o('plat',560,-80,160),
-    o('brk',800,-80,160), o('coin',880,-180),
-    o('spike',1020,60,140),
-    o('plat',1060,-120,200), o('spring',1300,-120,64),
-    o('plat',1180,-640,320), o('coin',1260,-720), o('coin',1340,-720), o('goal',1460,-680),
-    o('plat',-640,-220,200), o('coin',-540,-320),
-    o('brk',-420,-470,160), o('coin',-340,-560),
-    o('plat',-760,-700,220), o('coin',-650,-800), o('coin',-600,-840),
-  ]};
-}
-function starter(i){
-  if(i===0) return Object.assign(sample(),{name:'Your level'});
-  let id=0;const o=(type,x,y,w)=>({id:++id,type,x,y,...(w!=null?{w}:{})});
-  if(i===1) return {name:'Step Up',spawn:{x:-120,y:-60,dir:1},objs:[
-    o('plat',-300,0,520),
-    o('plat',380,-280,220),o('coin',490,-380),
-    o('plat',720,-560,220),o('coin',830,-660),
-    o('plat',1060,-840,280),o('coin',1140,-940),o('goal',1290,-876)]};
-  if(i===2){const a=[o('plat',-300,0,440)];
-    for(let k=0;k<5;k++){const x=160+k*180,y=160+k*180;a.push(o('brk',x,y,540));a.push(o('coin',x+300,y+100))}
-    a.push(o('plat',1060,1100,640),o('goal',1640,1064));
-    return {name:'Breakers',spawn:{x:-120,y:-60,dir:1},objs:a}}
-  if(i===3) return {name:'Spring Gap',spawn:{x:-120,y:-60,dir:1},objs:[
-    o('plat',-300,0,440),o('spike',160,60,1600),
-    o('plat',260,-20,130),o('coin',325,-110),
-    o('plat',520,-20,130),o('coin',585,-110),
-    o('spring',800,-20,64),
-    o('plat',1060,-20,130),o('coin',1125,-110),
-    o('plat',1250,-620,320),o('coin',1330,-720),o('coin',1400,-740),o('goal',1520,-656),
-    o('coin',1000,-1100),o('coin',1050,-1140),o('coin',1100,-1100)]};
-  return {name:'Switchback',spawn:{x:-60,y:-60,dir:1},objs:[
-    o('plat',-260,0,520),
-    o('plat',-60,-340,400),o('coin',300,-430),
-    o('plat',-340,-680,400),o('coin',-300,-770),
-    o('plat',-60,-1020,400),o('coin',300,-1110),
-    o('plat',-340,-1360,400),o('goal',-300,-1396),
-    o('spike',420,-1020,120),o('spike',-480,-680,120)]};
-}
-const NLEV=5;
-let pack=store.get('sbl_pack');
-if(!pack||!Array.isArray(pack.levels)){const old=store.get('sbl_level');pack={cur:0,levels:[]};for(let i=0;i<NLEV;i++)pack.levels.push(starter(i));if(old){old.name=old.name||'Your level';pack.levels[0]=old}}
+// The 20-level campaign. 'teach' lists the moves a level needs; the level bot checks it can't be won without them.
+const CAMPAIGN=[
+{"name":"Hop Along","teach":[],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":600},{"id":2,"type":"coin","x":150,"y":-140},{"id":3,"type":"coin","x":360,"y":-140},{"id":4,"type":"plat","x":400,"y":60,"w":400},{"id":5,"type":"coin","x":570,"y":-80},{"id":6,"type":"plat","x":800,"y":120,"w":420},{"id":7,"type":"coin","x":780,"y":-20},{"id":8,"type":"coin","x":990,"y":20},{"id":9,"type":"goal","x":1150,"y":84}]},
+{"name":"Step Down","teach":[],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":420},{"id":2,"type":"plat","x":280,"y":140,"w":380},{"id":3,"type":"coin","x":330,"y":40},{"id":4,"type":"plat","x":720,"y":280,"w":380},{"id":5,"type":"coin","x":770,"y":180},{"id":6,"type":"plat","x":1160,"y":420,"w":380},{"id":7,"type":"coin","x":1210,"y":320},{"id":8,"type":"plat","x":1600,"y":560,"w":520},{"id":9,"type":"goal","x":2020,"y":524}]},
+{"name":"Slam Up","teach":["slam"],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":1000},{"id":2,"type":"plat","x":400,"y":-300,"w":600},{"id":3,"type":"coin","x":500,"y":-400},{"id":4,"type":"coin","x":600,"y":-430},{"id":5,"type":"coin","x":700,"y":-400},{"id":6,"type":"goal","x":900,"y":-336}]},
+{"name":"Stairway","teach":["slam"],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":700},{"id":2,"type":"plat","x":300,"y":-280,"w":560},{"id":3,"type":"coin","x":560,"y":-380},{"id":4,"type":"plat","x":660,"y":-560,"w":560},{"id":5,"type":"coin","x":920,"y":-660},{"id":6,"type":"plat","x":1020,"y":-840,"w":600},{"id":7,"type":"goal","x":1500,"y":-876}]},
+{"name":"Drop In","teach":["slam"],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":500},{"id":2,"type":"plat","x":560,"y":160,"w":100},{"id":3,"type":"coin","x":610,"y":100},{"id":4,"type":"plat","x":860,"y":-120,"w":600},{"id":5,"type":"coin","x":1000,"y":-260},{"id":6,"type":"goal","x":1380,"y":-156}]},
+{"name":"Turnaround","teach":["double"],"spawn":{"x":-300,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-400,"y":0,"w":800},{"id":2,"type":"coin","x":250,"y":-300},{"id":3,"type":"plat","x":-700,"y":-560,"w":500},{"id":4,"type":"coin","x":-450,"y":-660},{"id":5,"type":"goal","x":-620,"y":-596}]},
+{"name":"Switchback","teach":["double"],"spawn":{"x":-200,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-300,"y":0,"w":800},{"id":2,"type":"plat","x":-560,"y":-540,"w":660},{"id":3,"type":"coin","x":-200,"y":-640},{"id":4,"type":"plat","x":-200,"y":-1080,"w":660},{"id":5,"type":"coin","x":200,"y":-1180},{"id":6,"type":"plat","x":-560,"y":-1620,"w":660},{"id":7,"type":"goal","x":-480,"y":-1656}]},
+{"name":"Breakers","teach":["smash"],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":500},{"id":2,"type":"brk","x":300,"y":0,"w":700},{"id":3,"type":"coin","x":650,"y":-100},{"id":4,"type":"plat","x":300,"y":320,"w":680},{"id":5,"type":"coin","x":600,"y":240},{"id":6,"type":"goal","x":900,"y":284}]},
+{"name":"Smash Stack","teach":["smash"],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":400},{"id":2,"type":"brk","x":200,"y":0,"w":800},{"id":3,"type":"brk","x":200,"y":200,"w":800},{"id":4,"type":"brk","x":200,"y":400,"w":800},{"id":5,"type":"coin","x":500,"y":140},{"id":6,"type":"coin","x":500,"y":340},{"id":7,"type":"plat","x":200,"y":600,"w":800},{"id":8,"type":"goal","x":900,"y":564}]},
+{"name":"Spring Up","teach":["spring"],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":400},{"id":2,"type":"spring","x":260,"y":140,"w":64},{"id":3,"type":"spring","x":324,"y":140,"w":64},{"id":4,"type":"spring","x":388,"y":140,"w":64},{"id":5,"type":"spring","x":452,"y":140,"w":64},{"id":6,"type":"spring","x":516,"y":140,"w":64},{"id":7,"type":"spring","x":580,"y":140,"w":64},{"id":8,"type":"spring","x":644,"y":140,"w":64},{"id":9,"type":"plat","x":260,"y":160,"w":448},{"id":10,"type":"plat","x":760,"y":-300,"w":300},{"id":11,"type":"coin","x":900,"y":-400},{"id":12,"type":"plat","x":1160,"y":-600,"w":400},{"id":13,"type":"goal","x":1480,"y":-636}]},
+{"name":"Spring Slam","teach":["springslam"],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":800},{"id":2,"type":"spring","x":300,"y":-20,"w":64},{"id":3,"type":"coin","x":330,"y":-500},{"id":4,"type":"coin","x":330,"y":-800},{"id":5,"type":"plat","x":260,"y":-1000,"w":700},{"id":6,"type":"goal","x":880,"y":-1036}]},
+{"name":"Spike Hop","teach":["slam"],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":640},{"id":2,"type":"spike","x":440,"y":0,"w":180},{"id":3,"type":"plat","x":620,"y":0,"w":700},{"id":4,"type":"coin","x":530,"y":-200},{"id":5,"type":"goal","x":1280,"y":-36}]},
+{"name":"Spike Drop","teach":["slam"],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":400},{"id":2,"type":"spike","x":200,"y":200,"w":1200},{"id":3,"type":"plat","x":520,"y":180,"w":100},{"id":4,"type":"plat","x":900,"y":180,"w":100},{"id":5,"type":"plat","x":1240,"y":-60,"w":400},{"id":6,"type":"goal","x":1580,"y":-96}]},
+{"name":"Tough Nut","teach":["tough"],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":400},{"id":2,"type":"brk2","x":200,"y":0,"w":800},{"id":3,"type":"plat","x":200,"y":300,"w":760},{"id":4,"type":"coin","x":600,"y":200},{"id":5,"type":"goal","x":900,"y":264}]},
+{"name":"Smash to Spring","teach":["smash","springslam"],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":500},{"id":2,"type":"brk","x":300,"y":0,"w":800},{"id":3,"type":"plat","x":400,"y":320,"w":400},{"id":4,"type":"spring","x":460,"y":300,"w":64},{"id":5,"type":"spring","x":524,"y":300,"w":64},{"id":6,"type":"spring","x":588,"y":300,"w":64},{"id":7,"type":"spring","x":652,"y":300,"w":64},{"id":8,"type":"spring","x":716,"y":300,"w":64},{"id":9,"type":"coin","x":600,"y":-500},{"id":10,"type":"plat","x":700,"y":-900,"w":500},{"id":11,"type":"goal","x":1100,"y":-936}]},
+{"name":"Spike Turn","teach":["double"],"spawn":{"x":-250,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-300,"y":0,"w":500},{"id":2,"type":"spike","x":200,"y":0,"w":600},{"id":3,"type":"spike","x":-700,"y":-560,"w":160},{"id":4,"type":"plat","x":-540,"y":-560,"w":480},{"id":5,"type":"coin","x":-300,"y":-660},{"id":6,"type":"plat","x":-300,"y":-1100,"w":700},{"id":7,"type":"spike","x":400,"y":-1100,"w":200},{"id":8,"type":"goal","x":340,"y":-1136}]},
+{"name":"Tough Tower","teach":["tough","double"],"spawn":{"x":-200,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-300,"y":0,"w":800},{"id":2,"type":"plat","x":-560,"y":-540,"w":660},{"id":3,"type":"coin","x":-200,"y":-640},{"id":4,"type":"plat","x":-200,"y":-1080,"w":360},{"id":5,"type":"brk2","x":160,"y":-1080,"w":900},{"id":6,"type":"plat","x":500,"y":-800,"w":400},{"id":7,"type":"coin","x":700,"y":-900},{"id":8,"type":"goal","x":840,"y":-836}]},
+{"name":"Gauntlet","teach":["slam","smash","springslam","double"],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":600},{"id":2,"type":"spike","x":400,"y":0,"w":160},{"id":3,"type":"plat","x":300,"y":-300,"w":500},{"id":4,"type":"coin","x":600,"y":-400},{"id":5,"type":"brk","x":800,"y":-300,"w":600},{"id":6,"type":"brk","x":800,"y":-100,"w":600},{"id":7,"type":"plat","x":900,"y":100,"w":480},{"id":8,"type":"spring","x":1200,"y":80,"w":64},{"id":9,"type":"coin","x":1230,"y":-400},{"id":10,"type":"plat","x":1300,"y":-1100,"w":520},{"id":11,"type":"spike","x":1820,"y":-1100,"w":160},{"id":12,"type":"plat","x":1100,"y":-1650,"w":360},{"id":13,"type":"spike","x":940,"y":-1650,"w":160},{"id":14,"type":"goal","x":1160,"y":-1686}]},
+{"name":"Spring Maze","teach":["springslam","double"],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":560},{"id":2,"type":"spike","x":360,"y":0,"w":200},{"id":3,"type":"spring","x":250,"y":-20,"w":64},{"id":4,"type":"plat","x":300,"y":-1300,"w":780},{"id":5,"type":"spike","x":1080,"y":-1300,"w":160},{"id":6,"type":"coin","x":700,"y":-1600},{"id":7,"type":"plat","x":380,"y":-1850,"w":300},{"id":8,"type":"spike","x":220,"y":-1850,"w":160},{"id":9,"type":"plat","x":-40,"y":-2400,"w":300},{"id":10,"type":"spike","x":260,"y":-2400,"w":120},{"id":11,"type":"spring","x":100,"y":-2420,"w":64},{"id":12,"type":"goal","x":380,"y":-2436}]},
+{"name":"Finale","teach":["double","tough","springslam"],"spawn":{"x":-200,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-300,"y":0,"w":800},{"id":2,"type":"spike","x":500,"y":0,"w":200},{"id":3,"type":"spike","x":-720,"y":-540,"w":160},{"id":4,"type":"plat","x":-560,"y":-540,"w":660},{"id":5,"type":"spike","x":100,"y":-1080,"w":160},{"id":6,"type":"plat","x":-200,"y":-1080,"w":300},{"id":7,"type":"brk2","x":260,"y":-1080,"w":840},{"id":8,"type":"plat","x":640,"y":-760,"w":420},{"id":9,"type":"spring","x":770,"y":-780,"w":64},{"id":10,"type":"spring","x":834,"y":-780,"w":64},{"id":11,"type":"spring","x":898,"y":-780,"w":64},{"id":12,"type":"coin","x":860,"y":-1500},{"id":13,"type":"plat","x":700,"y":-1900,"w":440},{"id":14,"type":"spike","x":1140,"y":-1900,"w":160},{"id":15,"type":"plat","x":300,"y":-2440,"w":400},{"id":16,"type":"goal","x":360,"y":-2476}]}
+];
+function starter(i){return JSON.parse(JSON.stringify(CAMPAIGN[i%CAMPAIGN.length]))}
+const NLEV=CAMPAIGN.length,CAMP_VER=1;
+// Packs from before the campaign are kept under sbl_pack_old, then replaced by the 20 levels.
+function campPack(pk){if(pk&&Array.isArray(pk.levels)&&pk.camp!==CAMP_VER){store.set('sbl_pack_old',pk);pk=null}return pk}
+let pack=campPack(store.get('sbl_pack'));
+if(!pack||!Array.isArray(pack.levels)){pack={cur:0,camp:CAMP_VER,levels:[]};for(let i=0;i<NLEV;i++)pack.levels.push(starter(i));store.set('sbl_pack',pack)}
 while(pack.levels.length<NLEV)pack.levels.push(starter(pack.levels.length));
 let level=pack.levels[pack.cur]||pack.levels[0];
 let nextId=level.objs.reduce((m,o)=>Math.max(m,+o.id||0),0);
@@ -291,6 +292,8 @@ let sel=null, snapOn=true;
 let p, rt, ckpt, startY, stats, simT=0, shakeAmt=0, lastLandY=0;
 let parts=[], pops=[], trail=[], springT=new Map();
 let win=null, flash=0, deadT=0, tries=1;
+let SIM=false; // true while the level bot simulates: no sound, buzz or saved times
+const BOT={watch:null,busy:false};
 
 const baseScale=()=>Math.min(W,H)/640;
 const scale=()=>baseScale()*(mode==='edit'?ecam.z:feel.zoom*(win?1+0.3*(1-Math.pow(1-Math.min(1,win.real/0.6),3)):1));
@@ -326,6 +329,7 @@ function objsAround(x,y,hw,hh){
 
 // ---------- play ----------
 function startPlay(){
+  simT=0;BOT.watch=null;
   rt={broken:new Set(),got:new Set(),hits:new Map(),hitT:new Map()};
   const sp=world==='level'?level.spawn:{x:0,y:-60,dir:1};
   p={x:sp.x,y:sp.y,vx:0,vy:0,dir:sp.dir||1,slam:false,wind:0,combo:0,squash:0,land:null,lastSlamT:-9,tapGap:null};
@@ -340,7 +344,7 @@ function pop(x,y,text,color,size){pops.push({x,y,text,color:color||C.ink,life:1,
 let flashRGB='255,255,255';
 // ---------- sound ----------
 let AC=null;
-function audio(){if(!feel.sound)return null;try{if(!AC){const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;AC=new A()}if(AC.state==='suspended')AC.resume();return AC}catch(_){return null}}
+function audio(){if(SIM||!feel.sound)return null;try{if(!AC){const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;AC=new A()}if(AC.state==='suspended')AC.resume();return AC}catch(_){return null}}
 function tone(f,t0,d,type,vol){const a=audio();if(!a)return;try{const o=a.createOscillator(),g=a.createGain(),t=a.currentTime+t0;o.type=type||'triangle';o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol||0.15,t+0.012);g.gain.exponentialRampToValueAtTime(0.0001,t+d);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+d+0.05)}catch(_){}}
 function sweep(f0,f1,t0,d,type,vol){const a=audio();if(!a)return;try{const o=a.createOscillator(),g=a.createGain(),t=a.currentTime+t0;o.type=type;o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+d);g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+0.008);g.gain.exponentialRampToValueAtTime(0.0001,t+d);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+d+0.05)}catch(_){}}
 function sfxSlam(c){
@@ -356,6 +360,7 @@ function sfxWin(){[523,659,784,1047].forEach((f,i)=>tone(f,i*0.08,0.22,'square',
 function confetti(x,y,n){const cols=[C.ball,C.spring,C.accent,C.goal,C.brk,'#FFFFFF'];for(let i=0;i<n;i++){const a=-Math.PI/2+(Math.random()-.5)*2.4,v=500+Math.random()*950;parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:1,decay:0.3+Math.random()*0.3,color:cols[i%cols.length],size:9+Math.random()*9,rect:true,rot:Math.random()*6,spin:(Math.random()-.5)*18,g:650,drag:1.8})}}
 function levelKey(){let h=0;const s=JSON.stringify(level.objs);for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return 'sbl_best_'+h}
 function celebrate(o){
+  if(SIM){win={o,bot:1};return}
   const t=stats.time;
   win={o,age:0,real:0,ready:false,baseY:o.y+35-R,rot:0,spin:16,waves:1,banner:false,best:false,prev:null};
   p.slam=false;p.wind=0;p.vx=0;p.vy=-1250;p.dir=1;p.land=null;trail=[];
@@ -363,7 +368,7 @@ function celebrate(o){
   confetti(o.x+20,o.y-30,55);
   for(let i=0;i<3;i++)parts.push({ring:true,x:o.x+10,y:o.y+20,r:R+i*16,life:1,decay:1.1,color:i%2?C.ball:C.goal});
   sfxWin();
-  try{navigator.vibrate&&navigator.vibrate([25,40,70])}catch(_){}
+  try{!SIM&&navigator.vibrate&&navigator.vibrate([25,40,70])}catch(_){}
   if(world==='level'){const k=levelKey(),b=store.get(k);win.prev=b;if(b==null||t<b){store.set(k,t);win.best=b!=null}}
 }
 function winStep(dt){
@@ -413,9 +418,11 @@ function doSlamBounce(o,combo,late){
     p.combo=combo;p.slam=false;p.wind=0;p.vy=feel.slamSpeed*0.6;p.land=null;p.y=o.y+PH-R+2;
     shakeAmt=Math.max(shakeAmt,12);burst(p.x,o.y+PH,14,C.brkD,380,6);
     pop(p.x,o.y-30,'SMASH!',C.brkD,30);
-    try{navigator.vibrate&&navigator.vibrate(15)}catch(_){}
+    try{!SIM&&navigator.vibrate&&navigator.vibrate(15)}catch(_){}
     return;
   }
+  // A late tap starts from partway up the bounce. With lateFair, shave the launch so the peak matches an on-time slam.
+  if(late&&feel.lateFair){const h=(o.y-R)-p.y;if(h>0)v=Math.sqrt(Math.max(0,v*v-2*feel.gravity*h))}
   p.vy=-v;
   let turn=turnsAt(combo), slow=false;
   if(turn&&feel.fastTurn&&combo>=2&&!(p.tapGap!=null&&p.tapGap<=feel.fastWindow)){turn=false;slow=true}
@@ -432,7 +439,7 @@ function doSlamBounce(o,combo,late){
     for(let i=0;i<combo;i++)parts.push({ring:true,x:p.x,y:o.y,r:R+i*24,life:1,decay:1.2,color:i%2?C.ball:C.accent});
     burst(p.x,o.y-10,16+combo*4,C.ball,680,6);burst(p.x,o.y-10,12,C.accent,560,5);
     flashRGB='59,111,245';flash=Math.max(flash,0.32);shakeAmt=Math.max(shakeAmt,14+combo*3);
-    try{navigator.vibrate&&navigator.vibrate(20)}catch(_){}
+    try{!SIM&&navigator.vibrate&&navigator.vibrate(20)}catch(_){}
   } else pop(p.x,o.y-30,(late?'SLAM (late)':'SLAM')+(turn?' ↺':''),C.ink,24);
 }
 function land(o){
@@ -457,8 +464,9 @@ function die(why){
   lastLandY=ckpt.y+R; trail=[];
 }
 function tap(){
-  if(mode!=='play'||paused) return;
-  hideHint();audio();
+  if(mode!=='play'||paused||(BOT.busy&&!SIM)) return;
+  if(BOT.watch&&!BOT.watch.tapping&&!win) return;
+  if(!SIM){hideHint();audio()}
   if(win){if(win.ready){tries=1;if(world==='level'){setLevel(pack.cur+1);toast(`Level ${pack.cur+1}: ${level.name}`)}else startPlay()}return}
   if(deadT>0) return;
   if(p.slam) return;
@@ -468,6 +476,7 @@ function tap(){
   p.slam=true; p.wind=feel.windup; p.land=null;
 }
 function step(dt){
+  if(BOT.watch&&!SIM)botWatchTick();
   simT+=dt;
   if(win){winStep(dt);return}
   if(deadT>0){deadT-=dt;if(deadT<=0){tries++;startPlay()}return}
@@ -638,6 +647,7 @@ function bounds(o){if(TYPES[o.type].pt)return o.type==='goal'?{x:o.x-10,y:o.y-44
 // ---------- loop ----------
 let last=performance.now(),acc=0,hudT=0;
 function frame(now){
+  if(BOT.busy){last=now;requestAnimationFrame(frame);return}
   let dt=Math.min(0.05,(now-last)/1000);last=now;
   if(mode==='play'&&!paused){let ts=1;if(win){win.real+=dt;const r=win.real;ts=r<0.1?0.04:r<0.9?0.3+0.7*(r-0.1)/0.8:1}acc+=dt*ts;while(acc>=1/120){step(1/120);acc-=1/120}updFx(dt*ts)}
   else if(mode==='edit'){simT+=dt}
@@ -789,8 +799,9 @@ try{navigator.wakeLock&&navigator.wakeLock.request('screen').catch(()=>{})}catch
 
 function applyAll(){
   feel=Object.assign({},DEF,store.get('sbl_feel')||{});
-  const pk=store.get('sbl_pack');
-  if(pk&&Array.isArray(pk.levels)&&pk.levels.length){pack=pk;while(pack.levels.length<NLEV)pack.levels.push(starter(pack.levels.length));if(!(pack.cur>=0&&pack.cur<NLEV))pack.cur=0}
+  const pk=campPack(store.get('sbl_pack'));
+  if(!pk){pack={cur:0,camp:CAMP_VER,levels:[]};for(let i=0;i<NLEV;i++)pack.levels.push(starter(i));store.set('sbl_pack',pack)}
+  else if(pk&&Array.isArray(pk.levels)&&pk.levels.length){pack=pk;while(pack.levels.length<NLEV)pack.levels.push(starter(pack.levels.length));if(!(pack.cur>=0&&pack.cur<NLEV))pack.cur=0}
   level=pack.levels[pack.cur];nextId=level.objs.reduce((m,o)=>Math.max(m,+o.id||0),0);
   sel=null;showSel();syncFeel();lvLabel();findSpawn();if(mode==='play'){tries=1;startPlay()}
 }
@@ -812,6 +823,220 @@ async function cloudBoot(){
     CLOUD.kv=Object.assign({},remote||{},local);CLOUD.ready=true;await cloudPush();
   }
 }
+// ---------- level bot ----------
+// The bot plays a level with the real step() and searches for tap timings that reach the flag.
+// Moves a level can teach (CAMPAIGN 'teach'): slam, double, smash, spring, springslam, tough.
+// For each taught move it also searches with that move banned: a win there is a shortcut.
+const BOT_G=3;            // the bot tries a tap every 3 ticks (25 ms)
+const BOT_MAXEV=600;      // give up if no landing for 5 s
+const BOT_NAMES={slam:'slam',double:'double (turn around)',smash:'smash a breakable',spring:'spring',springslam:'slam on a spring',tough:'break a tough breakable'};
+let botT=0;
+function botSnap(){return{p:{...p,land:p.land?{...p.land}:null},rt:{broken:new Set(rt.broken),got:new Set(rt.got),hits:new Map(rt.hits),hitT:new Map(rt.hitT)},simT,stats:{...stats},lastLandY,ckpt:{...ckpt},deadT,win,botT}}
+function botLoad(s){p={...s.p,land:s.p.land?{...s.p.land}:null};rt={broken:new Set(s.rt.broken),got:new Set(s.rt.got),hits:new Map(s.rt.hits),hitT:new Map(s.rt.hitT)};simT=s.simT;stats={...s.stats};lastLandY=s.lastLandY;ckpt={...s.ckpt};deadT=s.deadT;win=s.win;botT=s.botT}
+// Runs ticks until Boing lands, smashes, wins or dies. Returns what happened and which moves were used.
+function botAdvance(){
+  const dir0=p.dir,sl0=stats.slams,br0=rt.broken.size;
+  for(let i=0;i<BOT_MAXEV;i++){
+    const vy0=p.vy,slam0=p.slam,f0=stats.falls;
+    step(1/120);botT++;
+    if(win) return botUsed('win',dir0,sl0,br0);
+    if(deadT>0||stats.falls>f0) return {r:'dead'};
+    if((vy0>0&&p.vy<0)||(slam0&&!p.slam)) return botUsed('event',dir0,sl0,br0);
+  }
+  return {r:'dead'};
+}
+function botUsed(r,dir0,sl0,br0){
+  const u={r,slam:stats.slams>sl0,double:p.dir!==dir0,smash:false,tough:false,spring:false,springslam:false};
+  for(const [id,t] of springT) if(t===simT){u.spring=true;if(u.slam)u.springslam=true}
+  if(rt.broken.size>br0){let k=0;for(const id of rt.broken){if(k++<br0)continue;const o=level.objs.find(q=>q.id===id);if(o&&o.type==='brk2')u.tough=true;else u.smash=true}}
+  return u;
+}
+function botTap(){if(p.slam)return false;tap();return true}
+function botKey(){return Math.round(p.x/4)+','+Math.round(p.y)+','+Math.round(p.vy/20)+','+p.dir+','+p.combo+','+(p.slam?1:0)+','+(p.land?p.land.prev:'-')+','+[...rt.broken].join('.')+','+[...rt.hits].join('.')}
+const botBanned=(u,ban)=>ban&&ban.some(m=>u[m]);
+// Borrow the game state while the bot runs, then hand it back exactly as it was.
+function botBorrow(lv){
+  const keep={level,world,mode,paused,parts,pops,trail,shakeAmt,flash,pcam:{...pcam},startY,tries,sim:SIM,s:p?botSnap():null};
+  level=lv;world='level';mode='play';paused=false;SIM=true;
+  return keep;
+}
+function botGive(k){level=k.level;world=k.world;mode=k.mode;paused=k.paused;parts=k.parts;pops=k.pops;trail=k.trail;shakeAmt=k.shakeAmt;flash=k.flash;pcam=k.pcam;startY=k.startY;tries=k.tries;SIM=k.sim;springT.clear();if(k.s)botLoad(k.s)}
+function botStart(){startPlay();botT=0;parts=[];pops=[];trail=[]}
+// Search for a winning tap plan. A plan is a list of steps: after each landing, either
+// {k:n} = tap n ticks later, or {k:-1} = no tap until the next landing.
+// Yields now and then so the page stays responsive. Result in the returned object.
+function* botSearch(lv,ban,budget,want){
+  const keep=botBorrow(lv),out={ok:false,plan:null,plans:[],nodes:0,full:false};want=want||1;
+  try{
+    botStart();
+    const goal=lv.objs.find(o=>o.type==='goal');
+    if(!goal){out.full=true;return out}
+    const h=()=>Math.hypot(goal.x-p.x,goal.y-p.y);
+    const heap=[],seen=new Set();
+    const push=n=>{heap.push(n);let i=heap.length-1;while(i>0){const j=(i-1)>>1;if(heap[j].f<=heap[i].f)break;[heap[i],heap[j]]=[heap[j],heap[i]];i=j}};
+    const pop=()=>{const top=heap[0],last=heap.pop();if(heap.length){heap[0]=last;let i=0;for(;;){const a=2*i+1,b=a+1;let m=i;if(a<heap.length&&heap[a].f<heap[m].f)m=a;if(b<heap.length&&heap[b].f<heap[m].f)m=b;if(m===i)break;[heap[i],heap[m]]=[heap[m],heap[i]];i=m}}return top};
+    push({s:botSnap(),plan:[],taps:0,f:h()});seen.add(botKey());
+    let t0=Date.now();
+    const child=(n,step,u)=>{
+      if(u.r==='dead'||botBanned(u,ban))return null;
+      const plan=n.plan.concat([step]);
+      if(u.r==='win'){out.ok=true;if(!out.plan)out.plan=plan;out.plans.push(plan);return out.plans.length>=want}
+      parts.length=0;pops.length=0;trail.length=0;
+      const key=botKey();if(seen.has(key))return null;seen.add(key);
+      const taps=n.taps+(step.k>=0?1:0);
+      push({s:botSnap(),plan,taps,f:h()+25*plan.length+40*taps});
+      return null;
+    };
+    while(heap.length&&out.nodes<budget){
+      const n=pop();out.nodes++;
+      botLoad(n.s);
+      // Walk forward with no tap; at every BOT_G ticks, try a tap there as a branch.
+      for(let k=0;k<BOT_MAXEV;k++){
+        if(k%BOT_G===0&&!p.slam){
+          const s=botSnap();
+          if(botTap()){const u=p.slam?botAdvance():botUsed('event',s.p.dir,s.stats.slams,s.rt.broken.size);if(child(n,{k},u))return out}
+          botLoad(s);
+        }
+        const vy0=p.vy,slam0=p.slam,f0=stats.falls,dir0=p.dir,sl0=stats.slams,br0=rt.broken.size;
+        step(1/120);botT++;
+        if(win){if(child(n,{k:-1},botUsed('win',dir0,sl0,br0)))return out;break}
+        if(deadT>0||stats.falls>f0)break;
+        if((vy0>0&&p.vy<0)||(slam0&&!p.slam)){child(n,{k:-1},botUsed('event',n.s.p.dir,n.s.stats.slams,n.s.rt.broken.size));break}
+      }
+      if(Date.now()-t0>25){botGive(keep);yield out.nodes;botBorrow(lv);t0=Date.now()}
+    }
+    out.full=!heap.length;
+    return out;
+  } finally {botGive(keep)}
+}
+// Replays a plan from the start. Returns {win, ticks:[tick numbers of each tap], snaps}.
+function botReplay(plan,from){
+  const r={win:false,ticks:[],snaps:[]};
+  if(from){botLoad(from.s);r.ticks=from.ticks.slice()}else botStart();
+  for(let i=from?from.i:0;i<plan.length;i++){
+    r.snaps[i]={s:botSnap(),ticks:r.ticks.slice(),i};
+    const k=plan[i].k;let u;
+    if(k>=0){
+      for(let j=0;j<k;j++){const f0=stats.falls;step(1/120);botT++;if(win){r.win=true;r.used=i+1;return r}if(deadT>0||stats.falls>f0)return r}
+      r.ticks.push(botT);if(!botTap())return r;
+      u=p.slam?botAdvance():{r:'event'};
+    } else u=botAdvance();
+    if(u.r==='win'){r.win=true;r.used=i+1;return r}
+    if(u.r!=='event')return r;
+  }
+  return r;
+}
+// How far each tap can move (in ticks, earlier or later) and still win.
+function botTolerance(lv,plan){
+  const keep=botBorrow(lv);
+  try{
+    let base=botReplay(plan);if(!base.win)return null;
+    // Nudge each tap to the middle of its window, so the bot shows the most forgiving timing.
+    plan=plan.slice();
+    for(let i=0;i<plan.length;i++){
+      if(plan[i].k<0)continue;
+      const test=d=>{const k=plan[i].k+d;if(k<0)return false;const q=plan.slice();q[i]={k};return botReplay(q,base.snaps[i]).win};
+      let lo=0,hi=0;while(lo>-60&&test(lo-1))lo--;while(hi<60&&test(hi+1))hi++;
+      const mid=Math.round((lo+hi)/2);if(mid){plan[i]={k:plan[i].k+mid};base=botReplay(plan);if(!base.win){plan[i]={k:plan[i].k-mid};base=botReplay(plan)}}
+    }
+    // Drop taps at the end that don't matter (the bot sometimes taps on the way to the flag).
+    for(let i=plan.length-1;i>=0;i--){
+      if(plan[i].k<0)continue;
+      const q=plan.slice(0,i).concat(Array(40).fill({k:-1}));const r=botReplay(q);
+      if(r.win){plan=q;base=r}else break;
+    }
+    const win_=[];
+    for(let i=0;i<plan.length;i++){
+      if(plan[i].k<0)continue;
+      const test=d=>{const k=plan[i].k+d;if(k<0)return false;const q=plan.slice();q[i]={k};return botReplay(q,base.snaps[i]).win};
+      let lo=0,hi=0;
+      while(lo>-60&&test(lo-1))lo--;
+      while(hi<60&&test(hi+1))hi++;
+      win_.push({i,early:-lo,late:hi,ms:Math.round((hi-lo+1)*1000/120)});
+    }
+    return {taps:base.ticks,win:win_,plan:plan.slice(0,base.used||plan.length)};
+  } finally {botGive(keep)}
+}
+function botLevelHash(lv){return JSON.stringify(lv.objs)+JSON.stringify(lv.spawn)+JSON.stringify(feel)}
+const botCache=new Map();
+// Full check of one level: solve, measure timing, look for shortcuts.
+function* botCheck(lv,budget){
+  const hk=botLevelHash(lv);if(botCache.has(hk))return botCache.get(hk);
+  budget=budget||4000;
+  const res={hk,name:lv.name,ok:false,taps:0,tight:null,score:0,shortcuts:[],unsure:[],nodes:0};
+  // Several tries that weigh the route differently; keep the most forgiving win.
+  const s=yield* botSearch(lv,null,budget,24);res.nodes+=s.nodes;
+  if(s.ok){
+    for(const plan of s.plans){
+      const tol=botTolerance(lv,plan);if(!tol)continue;
+      const ws=tol.win.map(w=>w.ms),score=Math.round(ws.reduce((a,ms)=>a+100/ms,0)*10)/10;
+      if(!res.ok||score<res.score){res.ok=true;res.plan=tol.plan;res.ticks=tol.taps;res.taps=ws.length;res.windows=ws;res.tight=ws.length?Math.min(...ws):null;res.score=score}
+      yield 0;
+    }
+  } else res.full=s.full;
+  // Can it be won with no taps at all? Wanted for the warm-up levels, a shortcut for the rest.
+  const nt=yield* botSearch(lv,['slam'],budget);res.nodes+=nt.nodes;res.noTap=nt.ok;
+  for(const m of (lv.teach||[])){
+    const b=m==='slam'?nt:yield* botSearch(lv,[m],budget);if(m!=='slam')res.nodes+=b.nodes;
+    if(b.ok)res.shortcuts.push(m);else if(!b.full)res.unsure.push(m);
+  }
+  botCache.set(hk,res);
+  return res;
+}
+function botRunSync(gen){let r;do{r=gen.next()}while(!r.done);return r.value}
+function botRunAsync(gen,onTick){return new Promise(res=>{BOT.busy=true;const f=()=>{const t=Date.now();let r;do{r=gen.next()}while(!r.done&&Date.now()-t<30);if(r.done){BOT.busy=false;last=performance.now();res(r.value)}else{onTick&&onTick(r.value);setTimeout(f,0)}};setTimeout(f,0)})}
+function botWatchTick(){const w=BOT.watch;while(w.i<w.ticks.length&&w.ticks[w.i]===w.n){w.i++;w.tapping=true;tap();w.tapping=false}w.n++}
+function botTrace(lv,plan){const keep=botBorrow(lv);try{const pts=[],taps=[];botStart();
+  const rec=()=>{if(botT%3===0)pts.push([Math.round(p.x),Math.round(p.y)])};
+  for(const st of plan){if(st.k>=0){for(let j=0;j<st.k;j++){step(1/120);botT++;rec();if(win||deadT>0)return{pts,taps}}taps.push([Math.round(p.x),Math.round(p.y)]);botTap();if(!p.slam)continue}
+    for(let j=0;j<BOT_MAXEV;j++){const vy0=p.vy,s0=p.slam;step(1/120);botT++;rec();if(win||deadT>0)return{pts,taps};if((vy0>0&&p.vy<0)||(s0&&!p.slam))break}}
+  return{pts,taps}}finally{botGive(keep)}}
+// Bot sheet: per-level results, Watch, Check all.
+const botRes=[];
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function botRender(){
+  const el=$('botList');el.innerHTML='';
+  for(let i=0;i<NLEV;i++){
+    const lv=pack.levels[i],r=botRes[i],fresh=r&&r.hk===botLevelHash(lv),d=document.createElement('div');d.className='botrow';
+    let info='Not checked yet';
+    if(r){
+      info=!r.ok?'<span class="bad">No win found</span>':r.taps===0?'Wins with no taps':`${r.taps} tap${r.taps>1?'s':''} · window ${r.tight} ms · diff ${r.score}`;
+      if(r.shortcuts.length)info+=`<br><span class="bad">Shortcut: wins without ${r.shortcuts.map(m=>BOT_NAMES[m]).join(', ')}</span>`;
+      if(r.unsure.length)info+=`<br>Probably needs ${r.unsure.map(m=>BOT_NAMES[m]).join(', ')} (search ran out before proving it)`;
+      if(!fresh)info+='<br>Out of date: the level or Feel changed';
+    }
+    d.innerHTML=`<span class="n">${i+1}</span><b>${esc(lv.name||'Level')}</b><button class="ghost">Watch</button><span class="d">${info}</span>`;
+    d.querySelector('button').onclick=()=>botWatch(i);
+    el.appendChild(d);
+  }
+}
+async function botCheckLevel(i,msg){
+  $('botMsg').textContent=msg;
+  const r=await botRunAsync(botCheck(pack.levels[i]),n=>{if(n)$('botMsg').textContent=`${msg} · ${n} positions tried`});
+  botRes[i]=r;botRender();return r;
+}
+async function botWatch(i){
+  if(BOT.busy)return;
+  const r=await botCheckLevel(i,`Solving level ${i+1}…`);
+  if(!r.ok){$('botMsg').textContent=`The bot could not win level ${i+1}.`;return}
+  $('botMsg').textContent='';$('botSheet').hidden=true;paused=false;last=performance.now();
+  world='level';$('bWorld').textContent='Mode: Level';
+  if(pack.cur!==i)setLevel(i);
+  setMode('play');hideHint();
+  BOT.watch={ticks:r.ticks.slice(),i:0,n:0};
+  toast('Watching the bot. Tap Restart to play yourself.');
+}
+$('bBot').onclick=()=>{$('botSheet').hidden=false;paused=true;botRender()};
+$('bBotClose').onclick=()=>{if(BOT.busy)return;$('botSheet').hidden=true;paused=false;last=performance.now()};
+$('bBotWatch').onclick=()=>botWatch(pack.cur);
+$('bBotAll').onclick=async()=>{
+  if(BOT.busy)return;const t=performance.now();
+  for(let i=0;i<NLEV;i++)await botCheckLevel(i,`Checking level ${i+1} of ${NLEV}…`);
+  const bad=botRes.filter(r=>r&&(!r.ok||r.shortcuts.length)).length;
+  $('botMsg').textContent=`Done in ${Math.round((performance.now()-t)/1000)} s. `+(bad?`${bad} level${bad>1?'s need':' needs'} a look.`:'Every level can be won, and no shortcuts found.');
+};
+window.BOT_API={searchAsync:(lv,ban,b)=>botRunAsync(botSearch(lv,ban,b||4000)),trace:botTrace,run:n=>{for(let i=0;i<n&&!win;i++)step(1/120);return{win:!!win,x:p.x,y:p.y,tries}},watch:botWatch,check:(lv,b)=>botRunSync(botCheck(lv,b)),search:(lv,ban,b)=>botRunSync(botSearch(lv,ban,b||4000)),tolerance:botTolerance,clear:()=>botCache.clear(),feel:()=>feel,setFeel:f=>{Object.assign(feel,f);botCache.clear()},campaign:()=>typeof CAMPAIGN!=='undefined'?CAMPAIGN:null};
+
 startPlay();setMode('edit');requestAnimationFrame(frame);
 CLOUD.booted=true;
 cloudBoot().catch(()=>syncNote('Changes save on this device.'));

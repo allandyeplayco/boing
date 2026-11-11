@@ -16,7 +16,7 @@
 - Boing bounces automatically and always moves sideways. One input: tap anywhere.
 - **Tap = slam:** a short hang (`windup` 0.05 s), then a straight drop at `slamSpeed`, then a launch at `bounce × slamMult`.
 - **Chaining (current rules, `turn:'chain'` + `chainReset:1`):** the 1st slam goes higher and keeps direction. The 2nd slam in a row is DOUBLE: higher still (`× comboStep`) and he **turns around**. After a double the chain resets, so the next slam is a 1st slam again. A normal bounce with no tap also resets the chain. TRIPLE and QUAD were tried and dropped as confusing; springs give extra height instead.
-- **Late-tap grace:** a tap within `late` seconds after a normal landing still counts as a slam.
+- **Late-tap grace:** a tap within `late` seconds after a normal landing still counts as a slam. With `lateFair:1` (default) the launch is trimmed so the peak matches an on-time slam; before, a late tap launched from partway up the bounce and went up to ~90 units higher.
 - **Fast-tap turn (toggle `fastTurn`, off by default):** the turning slam only turns if tapped within `fastWindow` after the previous slam landed. A blue ring around Boing shows the window.
 - **Breakable (`brk`):** breaks on the 1st slam. With `brkThrough:1` the slam **ends** at the smash: Boing keeps falling fast but not slamming, and does a **normal** bounce on whatever is below, even another breakable. A normal bounce never damages a breakable.
 - **Tough breakable (`brk2`):** the 1st slam cracks it and removes the armor; slam number `brkHits` (default 2) breaks it.
@@ -37,7 +37,8 @@
 - Core loop: `tap()`, `step()`, `land()`, `doSlamBounce()`, `hitBrk()`, `nextCombo()`, `turnsAt()`, `die()`, `startPlay()`.
 - Win: `celebrate()`, `winStep()`, `showBanner()`.
 - Drawing: `render()`, `drawObj()`, `drawBall()`, `drawBoing()`. Boing is drawn with his body's bottom on the hitbox's bottom, scaled by `boingSize` (default 1.5×; visual only, the hitbox never changes). He flips with direction. The dizzy pose shows during death.
-- Levels: 5 slots in `pack` (saved under `sbl_pack`), starter layouts in `starter(i)`, endless random world in `cell()`. Best times are saved under `sbl_best_<hash>`.
+- Levels: the 20-level campaign is `CAMPAIGN` (each level has a `teach` list). `pack` holds 20 slots (saved under `sbl_pack`, tagged `camp:CAMP_VER`); `starter(i)` returns a fresh copy of `CAMPAIGN[i]`. A pack from before the campaign is backed up to `sbl_pack_old`. Bump `CAMP_VER` to push a new campaign over saved packs. Endless random world in `cell()`. Best times are saved under `sbl_best_<hash>`.
+- Level bot (`// ---------- level bot ----------`): `botSearch()` runs the real `step()` with `SIM=true` (no sound, buzz or saved times) and searches tap timings landing by landing. `botCheck()` solves a level, measures each tap's timing window (`botTolerance()`), and searches again with each `teach` move banned to find shortcuts. The **Bot** button opens the sheet with **Watch this level** (plays the bot's taps through `BOT.watch` in the real loop) and **Check all levels**. Headless: `node tools/check.mjs [levels.json]` prints the same table for the campaign or a file of levels.
 - Editor: drag-and-drop palette, move, resize handle, duplicate, delete, snap 20, level code import and export, copy previous level, reset to starter.
 - `cloudBoot()` and `window.claude`: saving to Allan's Claude account. This only works when the page runs as a claude.ai artifact. Anywhere else it does nothing and saving falls back to localStorage. It's safe to leave in or remove.
 
@@ -48,8 +49,8 @@
 - A spring's top surface is at `y`, and its base sits 20 units lower. To seat a spring on a platform, use spring `y` = platform `y` − 20.
 
 ## Next up (agreed plan)
-1. **20 levels with a difficulty curve.** Introduce one move at a time: bounce, then slam for height, double to turn, breakables, smash-through, springs, spikes, tough breakables, fast-tap turn (only if enabled), then combinations. Each new move gets a level or two to itself before levels mix moves.
-2. **Solver bot.** Run the game headless (Playwright and Chromium work; pause the rAF loop and drive `step()` directly) and search for tap timings that reach the flag, deciding at each bounce whether and when to tap. For each level, record:
+1. **Done (first pass):** 20 levels with a difficulty curve, in `CAMPAIGN`. **Was:** 20 levels with a difficulty curve. Introduce one move at a time: bounce, then slam for height, double to turn, breakables, smash-through, springs, spikes, tough breakables, fast-tap turn (only if enabled), then combinations. Each new move gets a level or two to itself before levels mix moves.
+2. **Done (first pass):** solver bot, see the code map. **Was:** solver bot. Run the game headless (Playwright and Chromium work; pause the rAF loop and drive `step()` directly) and search for tap timings that reach the flag, deciding at each bounce whether and when to tap. For each level, record:
    - a winning tap sequence,
    - its timing tolerance (how much each tap can shift and still win) as a difficulty number,
    - whether the level can be won *without* the move it teaches (a shortcut means the level needs fixing).
