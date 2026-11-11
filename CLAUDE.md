@@ -8,7 +8,8 @@
 
 ## Files
 - `index.html`: the whole game in one file (HTML, CSS and JS, no build step). Open it in a browser to play. Boing's three sprites are embedded as data URIs (`SPRD`). When more poses arrive, move them to files under `art/`.
-- `art/boing/`: cleaned, cropped full-res poses (`boing-fly.png`, `boing-slam.png`, `boing-dizzy.png`) and the character sheet.
+- `art/boing/`: the original poses (`boing-fly.png`, `boing-slam.png`, `boing-dizzy.png`) and the character sheet.
+- `art/boing/poses/<pose>.png`: the game's pose pictures (rise, apex, fall, land, slam, dead, win), first made with fal (nano-banana-pro edit + birefnet) and meant for Allan to touch up. `python3 tools/pack_sprites.py --embed` aligns them (equal silhouette area, centred on the body; `land` sits on its feet) into `art/boing/game/` and embeds them in `index.html`.
 - `docs/design-brief.md`: the design brief written for ChatGPT, which describes the mechanic and pieces in plain language. `docs/images/` holds the mechanic diagram and screenshots.
 - `levels/`: Allan's early levels, as copied level codes.
 
@@ -36,7 +37,7 @@
 - Settings: `FEEL` (slider and toggle definitions; `'seg'` type = button group, with options in `SEGS`) and `DEF`. Settings save under the key `sbl_feel`.
 - Core loop: `tap()`, `step()`, `land()`, `doSlamBounce()`, `hitBrk()`, `nextCombo()`, `turnsAt()`, `die()`, `startPlay()`.
 - Win: `celebrate()`, `winStep()`, `showBanner()`.
-- Drawing: `render()`, `drawObj()`, `drawBall()`, `drawBoing()`. Boing is drawn with his body's bottom on the hitbox's bottom, scaled by `boingSize` (default 1.5×; visual only, the hitbox never changes). He flips with direction. The dizzy pose shows during death.
+- Drawing: `render()`, `drawObj()`, `drawBall()`, `drawBoing()`. Boing is drawn with his body's bottom on the hitbox's bottom, scaled by `boingSize` (default 1.5×; visual only, the hitbox never changes). He flips with direction. `pickPose()` chooses rise/apex/fall/land/slam/dead/win from his motion, and `drawBoing()` fades into the new pose over `poseBlend` s, with `tilt` and `squashAmt` (Feel sliders) on top.
 - Levels: 5 slots in `pack` (saved under `sbl_pack`), starter layouts in `starter(i)`, endless random world in `cell()`. Best times are saved under `sbl_best_<hash>`.
 - Editor: drag-and-drop palette, move, resize handle, duplicate, delete, snap 20, level code import and export, copy previous level, reset to starter.
 - `cloudBoot()` and `window.claude`: saving to Allan's Claude account. This only works when the page runs as a claude.ai artifact. Anywhere else it does nothing and saving falls back to localStorage. It's safe to leave in or remove.

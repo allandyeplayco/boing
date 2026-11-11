@@ -7,9 +7,9 @@ from the corner colour if there is no transparency.
 
 Needs:  pip install pillow numpy scipy
 Run:  python3 tools/pack_sprites.py
-It finds Boing's body circle in each picture (the biggest circle that fits
-inside his silhouette), scales every pose so that circle is the same size, and
-centres it. Output:
+It scales every pose so his silhouette covers the same area (squash and
+stretch keep volume), and centres the middle of his body (the biggest circle
+that fits inside his silhouette). The landing pose is anchored by its feet. Output:
   art/boing/game/<pose>.png      512x512 aligned poses (for checking in Photoshop)
   art/boing/game/sheet.png       all poses side by side, 256px cells
   art/boing/game/sprites.json    anchor data the game uses
@@ -23,7 +23,7 @@ from scipy import ndimage
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC, OUT = ROOT / 'art/boing/poses', ROOT / 'art/boing/game'
 POSES = ['rise', 'apex', 'fall', 'land', 'slam', 'dead', 'win']
-CANVAS, BODY_R, GAME = 512, 0.27, 256  # body circle radius as a fraction of the canvas
+CANVAS, BODY_R, GAME = 512, 0.24, 256  # body circle radius as a fraction of the canvas
 
 def load_alpha(path):
     im = Image.open(path).convert('RGBA')
@@ -47,14 +47,27 @@ def body_circle(mask):
     cy, cx = np.unravel_index(np.argmax(dist), dist.shape)
     return cx, cy, dist[cy, cx]
 
-def align(path):
+GROUNDED = {'land'}  # poses drawn with their feet on the ground instead of centred on the body
+SQRT_AREA = 0.5     # every pose gets the same silhouette area (squash and stretch keep volume)
+
+def align(path, pose):
     im, mask = load_alpha(path)
-    cx, cy, r = body_circle(mask)
-    k = BODY_R * CANVAS / r
+    lab, n = ndimage.label(mask)
+    if n > 1:
+        sz = ndimage.sum(mask, lab, range(1, n + 1))
+        mask = lab == (np.argmax(sz) + 1)
+    mask = ndimage.binary_fill_holes(mask)
+    cx, cy, _ = body_circle(mask)
+    k = SQRT_AREA * CANVAS / mask.sum() ** 0.5
     im = im.resize((round(im.width * k), round(im.height * k)), Image.LANCZOS)
     out = Image.new('RGBA', (CANVAS, CANVAS))
-    out.paste(im, (round(CANVAS / 2 - cx * k), round(CANVAS / 2 - cy * k)), im)
-    return out
+    ox, oy = round(CANVAS / 2 - cx * k), round(CANVAS / 2 - cy * k)
+    out.paste(im, (ox, oy), im)
+    ay = 0.5
+    if pose in GROUNDED:  # put the lowest point of the body one body-radius below the anchor
+        ys = np.nonzero(mask)[0]
+        ay = (oy + ys.max() * k - BODY_R * CANVAS) / CANVAS
+    return out, ay
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
@@ -64,10 +77,10 @@ def main():
     sheet = Image.new('RGBA', (GAME * len(found), GAME))
     meta = {}
     for i, p in enumerate(found):
-        a = align(SRC / f'{p}.png')
+        a, ay = align(SRC / f'{p}.png', p)
         a.save(OUT / f'{p}.png')
         sheet.paste(a.resize((GAME, GAME), Image.LANCZOS), (i * GAME, 0))
-        meta[p] = {'w': GAME, 'h': GAME, 'cx': 0.5, 'cy': 0.5, 'r': BODY_R}
+        meta[p] = {'w': GAME, 'h': GAME, 'cx': 0.5, 'cy': round(ay, 4), 'r': BODY_R}
         print(f'{p}: aligned')
     sheet.save(OUT / 'sheet.png')
     (OUT / 'sprites.json').write_text(json.dumps(meta, indent=1))
