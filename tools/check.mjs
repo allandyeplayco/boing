@@ -9,7 +9,7 @@ const b=await chromium.launch();
 const pg=await b.newPage({viewport:{width:390,height:844}});
 pg.on('pageerror',e=>console.log('PAGE ERROR',e.message));
 await pg.goto('file://'+path.join(here,'..','index.html'));
-await pg.waitForFunction(()=>window.BOT_API);if(process.env.BUDGET)await pg.evaluate(b=>window.BUDGET=b,+process.env.BUDGET);
+await pg.waitForFunction(()=>window.BOT_API);if(process.env.FEEL)await pg.evaluate(f=>window.BOT_API.setFeel(f),JSON.parse(readFileSync(process.env.FEEL,'utf8')));if(process.env.BUDGET)await pg.evaluate(b=>window.BUDGET=b,+process.env.BUDGET);
 const levels=file?JSON.parse(readFileSync(file,'utf8')):null;
 const res=await pg.evaluate(async(levels)=>{
   const L=levels||window.BOT_API.campaign();const out=[];

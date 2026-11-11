@@ -8,7 +8,8 @@
 
 ## Files
 - `index.html`: the whole game in one file (HTML, CSS and JS, no build step). Open it in a browser to play. Boing's three sprites are embedded as data URIs (`SPRD`). When more poses arrive, move them to files under `art/`.
-- `art/boing/`: cleaned, cropped full-res poses (`boing-fly.png`, `boing-slam.png`, `boing-dizzy.png`) and the character sheet.
+- `art/boing/`: the original poses (`boing-fly.png`, `boing-slam.png`, `boing-dizzy.png`) and the character sheet.
+- `art/boing/poses/<pose>.png`: the game's pose pictures (rise, apex, fall, land, slam, dead, win), first made with fal (nano-banana-pro edit + birefnet) and meant for Allan to touch up. `python3 tools/pack_sprites.py --embed` aligns them (equal silhouette area, centred on the body; `land` sits on its feet) into `art/boing/game/` and embeds them in `index.html`.
 - `docs/design-brief.md`: the design brief written for ChatGPT, which describes the mechanic and pieces in plain language. `docs/images/` holds the mechanic diagram and screenshots.
 - `levels/`: Allan's early levels, as copied level codes.
 
@@ -17,7 +18,7 @@
 - **Tap = slam:** a short hang (`windup` 0.05 s), then a straight drop at `slamSpeed`, then a launch at `bounce × slamMult`.
 - **Chaining (current rules, `turn:'chain'` + `chainReset:1`):** the 1st slam goes higher and keeps direction. The 2nd slam in a row is DOUBLE: higher still (`× comboStep`) and he **turns around**. After a double the chain resets, so the next slam is a 1st slam again. A normal bounce with no tap also resets the chain. TRIPLE and QUAD were tried and dropped as confusing; springs give extra height instead.
 - **Late-tap grace:** a tap within `late` seconds after a normal landing still counts as a slam. With `lateFair:1` (default) the launch is trimmed so the peak matches an on-time slam; before, a late tap launched from partway up the bounce and went up to ~90 units higher.
-- **Fast-tap turn (toggle `fastTurn`, off by default):** the turning slam only turns if tapped within `fastWindow` after the previous slam landed. A blue ring around Boing shows the window.
+- **Fast-tap turn (toggle `fastTurn`, on by default):** the turning slam only turns if tapped within `fastWindow` after the previous slam landed. A blue ring around Boing shows the window.
 - **Breakable (`brk`):** breaks on the 1st slam. With `brkThrough:1` the slam **ends** at the smash: Boing keeps falling fast but not slamming, and does a **normal** bounce on whatever is below, even another breakable. A normal bounce never damages a breakable.
 - **Tough breakable (`brk2`):** the 1st slam cracks it and removes the armor; slam number `brkHits` (default 2) breaks it.
 - **Spring:** multiplies any bounce by `springMult`.
@@ -28,15 +29,15 @@
 ## Physics and units
 - Fixed 120 Hz step (`step(1/120)`), so a run is deterministic given the same tap times. The solver depends on this.
 - y grows **down**. 40 units = 1 m in the HUD. Ball hitbox radius `R=18`. Platform thickness `PH=18`.
-- Defaults (`DEF`): gravity 2600, bounce 1000, speed 270, slamSpeed 2600, slamMult 1.6, comboStep 1.15, springMult 1.7, late 0.1, zoom 1, look-ahead 120.
-- Peak heights: normal ≈ 190 units (about 5 m), 1st slam ≈ 490 (about 12 m), double ≈ 650 (about 16 m), slam on a spring ≈ 1420.
+- Defaults (`DEF`, Allan's tuned feel from 2026-11-11): gravity 2600, bounce 1000, speed 270, slamSpeed 2600, windup 0.04, slamMult 1.29, comboStep 1.06, springMult 1.65, late 0.08, fastTurn on (fastWindow 0.28), zoom 1, look-ahead 120.
+- Peak heights (defaults): normal ≈ 190 units (about 5 m), 1st slam ≈ 320 (about 8 m), double ≈ 360 (about 9 m), spring alone ≈ 520, slam on a spring ≈ 870.
 - The camera shows about 640 units across at zoom 1 (`baseScale = min(W,H)/640`).
 
 ## Code map (in `index.html`)
 - Settings: `FEEL` (slider and toggle definitions; `'seg'` type = button group, with options in `SEGS`) and `DEF`. Settings save under the key `sbl_feel`.
 - Core loop: `tap()`, `step()`, `land()`, `doSlamBounce()`, `hitBrk()`, `nextCombo()`, `turnsAt()`, `die()`, `startPlay()`.
 - Win: `celebrate()`, `winStep()`, `showBanner()`.
-- Drawing: `render()`, `drawObj()`, `drawBall()`, `drawBoing()`. Boing is drawn with his body's bottom on the hitbox's bottom, scaled by `boingSize` (default 1.5×; visual only, the hitbox never changes). He flips with direction. The dizzy pose shows during death.
+- Drawing: `render()`, `drawObj()`, `drawBall()`, `drawBoing()`. Boing is drawn with his body's bottom on the hitbox's bottom, scaled by `boingSize` (default 1.5×; visual only, the hitbox never changes). He flips with direction. `pickPose()` chooses rise/apex/fall/land/slam/dead/win from his motion, and `drawBoing()` fades into the new pose over `poseBlend` s, with `tilt` and `squashAmt` (Feel sliders) on top.
 - Levels: the 20-level campaign is `CAMPAIGN` (each level has a `teach` list). `pack` holds 20 slots (saved under `sbl_pack`, tagged `camp:CAMP_VER`); `starter(i)` returns a fresh copy of `CAMPAIGN[i]`. A pack from before the campaign is backed up to `sbl_pack_old`. Bump `CAMP_VER` to push a new campaign over saved packs. Endless random world in `cell()`. Best times are saved under `sbl_best_<hash>`.
 - Level bot (`// ---------- level bot ----------`): `botSearch()` runs the real `step()` with `SIM=true` (no sound, buzz or saved times) and searches tap timings landing by landing. `botCheck()` solves a level, measures each tap's timing window (`botTolerance()`), and searches again with each `teach` move banned to find shortcuts. The **Bot** button opens the sheet with **Watch this level** (plays the bot's taps through `BOT.watch` in the real loop) and **Check all levels**. Headless: `node tools/check.mjs [levels.json]` prints the same table for the campaign or a file of levels.
 - Editor: drag-and-drop palette, move, resize handle, duplicate, delete, snap 20, level code import and export, copy previous level, reset to starter.

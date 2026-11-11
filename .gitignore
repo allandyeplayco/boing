@@ -1,16 +1,5 @@
-# Zipped copies of the project (the real files are already here)
-*.zip
-
-# Mac and editor clutter
+# Local settings that can hold private keys. Never commit these.
+.mcp.json
+.env
+.env.*
 .DS_Store
-Thumbs.db
-.vscode/
-.idea/
-
-# Big art source files: keep these on your computer or in shared storage
-*.psd
-*.psb
-*.kra
-*.blend
-*.blend1
-*.aseprite.bak
