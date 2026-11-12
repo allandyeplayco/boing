@@ -203,9 +203,10 @@ const FEEL=[
  ['shake','Screen shake',0,1,1,'bool'],
  ['sound','Sound',0,1,1,'bool'],
  ['bounceSfx','Sound on normal bounces',0,1,1,'bool'],
- ['restartOnDeath','Dying restarts the level',0,1,1,'bool']
+ ['restartOnDeath','Dying restarts the level',0,1,1,'bool'],
+ ['deathArc','Death: pop up and fall off screen',0,1,1,'bool']
 ];
-const DEF={gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.05,slamMult:1.6,comboStep:1.15,comboMax:4,late:0.1,drift:0,springMult:1.7,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:0,fastWindow:0.35,chainReset:1,v2:1};
+const DEF={gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.05,slamMult:1.6,comboStep:1.15,comboMax:4,late:0.1,drift:0,springMult:1.7,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:0,fastWindow:0.35,chainReset:1,v2:1};
 const TURNS=[['every','Every slam'],['chain','Every slam after the 1st'],['second','Every 2nd slam'],['never','Never']];
 const SEGS={turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
 
@@ -453,7 +454,7 @@ function land(o){
   if(o.type==='plat'||o.type==='spring') ckpt={x:Math.max(o.x+R,Math.min(o.x+o.w-R,p.x)),y:o.y-R-2};
 }
 function die(why){
-  if(feel.restartOnDeath){burst(p.x,p.y,22,C.spike,520,7);ring(p.x,p.y,C.spike);pop(p.x,p.y-40-(feel.skin!=='ball'?R*2*(feel.boingSize-1)+20:0),why,C.spike);shakeAmt=12;p.vx=0;p.vy=0;p.slam=false;trail=[];deadT=0.5;tone(220,0,0.25,'square',0.07);tone(147,0.12,0.35,'square',0.07);return}
+  if(feel.restartOnDeath){burst(p.x,p.y,22,C.spike,520,7);ring(p.x,p.y,C.spike);pop(p.x,p.y-40-(feel.skin!=='ball'?R*2*(feel.boingSize-1)+20:0),why,C.spike);shakeAmt=12;p.slam=false;trail=[];if(feel.deathArc){p.vx=p.dir*feel.speed*0.4;p.vy=why==='Spiked'?-1100:Math.max(p.vy,600);deadT=why==='Spiked'?1.2:0.8}else{p.vx=0;p.vy=0;deadT=0.5}tone(220,0,0.25,'square',0.07);tone(147,0.12,0.35,'square',0.07);return}
   burst(p.x,p.y,18,C.spike,500,7); stats.falls++;
   pop(ckpt.x,ckpt.y-50,why,C.spike);
   Object.assign(p,{x:ckpt.x,y:ckpt.y-30,vx:0,vy:0,slam:false,wind:0,combo:0,land:null});
@@ -473,7 +474,7 @@ function tap(){
 function step(dt){
   simT+=dt;
   if(win){winStep(dt);return}
-  if(deadT>0){deadT-=dt;if(deadT<=0){tries++;startPlay()}return}
+  if(deadT>0){deadT-=dt;if(feel.deathArc){p.vy=Math.min(p.vy+feel.gravity*dt,3000);p.x+=p.vx*dt;p.y+=p.vy*dt}if(deadT<=0){tries++;startPlay()}return}
   stats.time+=dt;
   if(p.slam&&p.wind>0){p.wind-=dt;p.vx=0;p.vy=0}
   else if(p.slam){p.vy=feel.slamSpeed;p.vx=p.dir*feel.speed*feel.drift}
@@ -590,7 +591,7 @@ function drawBoing(o,dir){
 // Allan's Spine export goes in art/boing/spine/ (boing.json, boing.atlas, boing.png), exported as JSON with a packed atlas.
 // Animations: air (frame 0 = launching up, middle = apex, end = falling; scrubbed by vertical speed), land, slam, dead, win.
 // SPINE_VER must match the Spine editor version the export came from.
-const SPINE_VER='4.2.120', SPINE_DIR='art/boing/spine/', SPINE_NAME='boing';
+const SPINE_VER='4.2.120'/* plays Spine 4.2 exports (Allan's editor: 4.2.43) */, SPINE_DIR='art/boing/spine/', SPINE_NAME='boing';
 const SP={ready:false,failed:false,skel:null,state:null,renderer:null,cur:null,last:0,unit:1};
 function spineOn(){return feel.skin==='spine'&&SP.ready}
 function loadScript(src){return new Promise((ok,no)=>{const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=no;document.head.appendChild(e)})}
@@ -605,24 +606,35 @@ async function spineBoot(){
     for(const pg of atlas.pages)pg.setTexture(new sp.CanvasTexture(await loadImg(SPINE_DIR+pg.name)));
     const data=new sp.SkeletonJson(new sp.AtlasAttachmentLoader(atlas)).readSkeletonData(json);
     SP.skel=new sp.Skeleton(data);SP.skel.setToSetupPose();SP.skel.updateWorldTransform(sp.Physics.update);
-    const off=new sp.Vector2(),size=new sp.Vector2();SP.skel.getBounds(off,size,[]);
-    SP.unit=size.y>0?size.y:1; // setup pose height = one "Boing" tall
+    // size and anchor from the body circle (slot "body"): its height = Boing's body diameter, its bottom = his feet line
+    const off=new sp.Vector2(),size=new sp.Vector2();SP.skel.getBounds(off,size,[]);SP.unit=size.y||1;SP.bottom=0;
+    const bs=SP.skel.findSlot('body'),ba=bs&&bs.getAttachment();
+    if(ba&&ba.computeWorldVertices){const n=ba.worldVerticesLength||8,v=new Float32Array(n);
+      if(ba.worldVerticesLength)ba.computeWorldVertices(bs,0,n,v,0,2);else ba.computeWorldVertices(bs,v,0,2);
+      let lo=1e9,hi=-1e9;for(let i=1;i<n;i+=2){lo=Math.min(lo,v[i]);hi=Math.max(hi,v[i])}
+      if(hi>lo){SP.unit=(hi-lo)/2;SP.bottom=hi}} // y is down (yDown), so the largest y is the bottom
     SP.state=new sp.AnimationState(new sp.AnimationStateData(data));
     SP.renderer=new sp.SkeletonRenderer(ctx);SP.renderer.triangleRendering=true;
     SP.has=n=>!!data.findAnimation(n);
     SP.ready=true;
   }catch(e){SP.failed=true}
 }
-function spineAnim(o){if(o.dead)return'dead';if(o.happy)return'win';if(o.slam)return'slam';if((o.squash||0)>0.25&&SP.has('land'))return'land';return'air'}
+function spineAnim(o){if(o.dead)return'dead';if(o.happy)return'win';if(o.slam)return'slam';
+  // a landing (squash jumps up) starts 'land', which plays to its end before going back to 'air'
+  const sq=o.squash||0,hit=sq>(SP.lastSq||0)+0.2;SP.lastSq=sq;
+  SP.restart=hit&&SP.has('land');if(SP.restart)return'land';
+  if(SP.cur==='land'){const e=SP.state.getCurrent(0);if(e&&!e.isComplete())return'land'}
+  return'air'}
 function drawSpine(o,dir){
   const sp=window.spine,now=performance.now()/1000,dt=Math.min(0.1,SP.last?now-SP.last:0);SP.last=now;
   let a=spineAnim(o);if(!SP.has(a))a=SP.has('air')?'air':null;if(!a)return false;
   const st=SP.state;st.data.defaultMix=feel.poseBlend;
-  if(a!==SP.cur){SP.cur=a;const e=st.setAnimation(0,a,a!=='air'&&a!=='land');if(a==='air')e.timeScale=0}
+  const LOOP={dead:1,win:1};
+  if(a!==SP.cur||(a==='land'&&SP.restart)){SP.cur=a;const e=st.setAnimation(0,a,!!LOOP[a]);if(a==='air')e.timeScale=0}
   const e=st.getCurrent(0);
   if(a==='air'&&e){const k=Math.max(-1,Math.min(1,(o.pvy||0)/feel.bounce));e.trackTime=(0.5+0.5*k)*e.animation.duration*0.999}
   st.update(dt);st.apply(SP.skel);
-  const k=2.6*R*feel.boingSize/SP.unit;SP.skel.scaleX=k*(dir<0&&!o.dead?-1:1);SP.skel.scaleY=k;SP.skel.x=0;SP.skel.y=0;
+  const k=R*feel.boingSize/SP.unit;SP.skel.scaleX=k*(dir<0&&!o.dead?-1:1);SP.skel.scaleY=k;SP.skel.x=0;SP.skel.y=-SP.bottom*k;
   ctx.save();
   if(!o.dead&&!o.slam&&!o.happy&&feel.tilt){const v=Math.max(-1,Math.min(1,(o.pvy||0)/1500));ctx.translate(0,-R*feel.boingSize);ctx.rotate(dir*v*feel.tilt*Math.PI/180);ctx.translate(0,R*feel.boingSize)}
   SP.skel.updateWorldTransform(sp.Physics.update);SP.renderer.draw(SP.skel);ctx.restore();return true}
