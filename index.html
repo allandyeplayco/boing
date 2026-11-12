@@ -205,9 +205,9 @@ const FEEL=[
  ['bounceSfx','Sound on normal bounces',0,1,1,'bool'],
  ['restartOnDeath','Dying restarts the level',0,1,1,'bool']
 ];
-const DEF={gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.05,slamMult:1.6,comboStep:1.15,comboMax:4,late:0.1,drift:0,springMult:1.7,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,skin:'boing',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:0,fastWindow:0.35,chainReset:1,v2:1};
+const DEF={gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.05,slamMult:1.6,comboStep:1.15,comboMax:4,late:0.1,drift:0,springMult:1.7,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:0,fastWindow:0.35,chainReset:1,v2:1};
 const TURNS=[['every','Every slam'],['chain','Every slam after the 1st'],['second','Every 2nd slam'],['never','Never']];
-const SEGS={turn:TURNS,skin:[['boing','Boing'],['ball','Shape']]};
+const SEGS={turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
 
 const MEM={};
 const CLOUD={kv:null,ready:false,booted:false,localDirty:false,timer:0,busy:false,again:false,ref:null};
@@ -453,7 +453,7 @@ function land(o){
   if(o.type==='plat'||o.type==='spring') ckpt={x:Math.max(o.x+R,Math.min(o.x+o.w-R,p.x)),y:o.y-R-2};
 }
 function die(why){
-  if(feel.restartOnDeath){burst(p.x,p.y,22,C.spike,520,7);ring(p.x,p.y,C.spike);pop(p.x,p.y-40-(feel.skin==='boing'?R*2*(feel.boingSize-1)+20:0),why,C.spike);shakeAmt=12;p.vx=0;p.vy=0;p.slam=false;trail=[];deadT=0.5;tone(220,0,0.25,'square',0.07);tone(147,0.12,0.35,'square',0.07);return}
+  if(feel.restartOnDeath){burst(p.x,p.y,22,C.spike,520,7);ring(p.x,p.y,C.spike);pop(p.x,p.y-40-(feel.skin!=='ball'?R*2*(feel.boingSize-1)+20:0),why,C.spike);shakeAmt=12;p.vx=0;p.vy=0;p.slam=false;trail=[];deadT=0.5;tone(220,0,0.25,'square',0.07);tone(147,0.12,0.35,'square',0.07);return}
   burst(p.x,p.y,18,C.spike,500,7); stats.falls++;
   pop(ckpt.x,ckpt.y-50,why,C.spike);
   Object.assign(p,{x:ckpt.x,y:ckpt.y-30,vx:0,vy:0,slam:false,wind:0,combo:0,land:null});
@@ -586,15 +586,56 @@ function drawBoing(o,dir){
   if(ps&&ps!==s)drawPose(ps,size,1);
   drawPose(s,size,ps&&ps!==s?a:1);
   ctx.restore();return true}
+// ---------- Spine Boing ----------
+// Allan's Spine export goes in art/boing/spine/ (boing.json, boing.atlas, boing.png), exported as JSON with a packed atlas.
+// Animations: air (frame 0 = launching up, middle = apex, end = falling; scrubbed by vertical speed), land, slam, dead, win.
+// SPINE_VER must match the Spine editor version the export came from.
+const SPINE_VER='4.2.120', SPINE_DIR='art/boing/spine/', SPINE_NAME='boing';
+const SP={ready:false,failed:false,skel:null,state:null,renderer:null,cur:null,last:0,unit:1};
+function spineOn(){return feel.skin==='spine'&&SP.ready}
+function loadScript(src){return new Promise((ok,no)=>{const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=no;document.head.appendChild(e)})}
+function loadImg(src){return new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=src})}
+async function spineBoot(){
+  try{
+    const jr=await fetch(SPINE_DIR+SPINE_NAME+'.json');if(!jr.ok)throw 0;const json=await jr.json();
+    const atlasText=await (await fetch(SPINE_DIR+SPINE_NAME+'.atlas')).text();
+    if(!window.spine)await loadScript(`https://cdn.jsdelivr.net/npm/@esotericsoftware/spine-canvas@${SPINE_VER}/dist/iife/spine-canvas.min.js`);
+    const sp=window.spine;sp.Skeleton.yDown=true;
+    const atlas=new sp.TextureAtlas(atlasText);
+    for(const pg of atlas.pages)pg.setTexture(new sp.CanvasTexture(await loadImg(SPINE_DIR+pg.name)));
+    const data=new sp.SkeletonJson(new sp.AtlasAttachmentLoader(atlas)).readSkeletonData(json);
+    SP.skel=new sp.Skeleton(data);SP.skel.setToSetupPose();SP.skel.updateWorldTransform(sp.Physics.update);
+    const off=new sp.Vector2(),size=new sp.Vector2();SP.skel.getBounds(off,size,[]);
+    SP.unit=size.y>0?size.y:1; // setup pose height = one "Boing" tall
+    SP.state=new sp.AnimationState(new sp.AnimationStateData(data));
+    SP.renderer=new sp.SkeletonRenderer(ctx);SP.renderer.triangleRendering=true;
+    SP.has=n=>!!data.findAnimation(n);
+    SP.ready=true;
+  }catch(e){SP.failed=true}
+}
+function spineAnim(o){if(o.dead)return'dead';if(o.happy)return'win';if(o.slam)return'slam';if((o.squash||0)>0.25&&SP.has('land'))return'land';return'air'}
+function drawSpine(o,dir){
+  const sp=window.spine,now=performance.now()/1000,dt=Math.min(0.1,SP.last?now-SP.last:0);SP.last=now;
+  let a=spineAnim(o);if(!SP.has(a))a=SP.has('air')?'air':null;if(!a)return false;
+  const st=SP.state;st.data.defaultMix=feel.poseBlend;
+  if(a!==SP.cur){SP.cur=a;const e=st.setAnimation(0,a,a!=='air'&&a!=='land');if(a==='air')e.timeScale=0}
+  const e=st.getCurrent(0);
+  if(a==='air'&&e){const k=Math.max(-1,Math.min(1,(o.pvy||0)/feel.bounce));e.trackTime=(0.5+0.5*k)*e.animation.duration*0.999}
+  st.update(dt);st.apply(SP.skel);
+  const k=2.6*R*feel.boingSize/SP.unit;SP.skel.scaleX=k*(dir<0&&!o.dead?-1:1);SP.skel.scaleY=k;SP.skel.x=0;SP.skel.y=0;
+  ctx.save();
+  if(!o.dead&&!o.slam&&!o.happy&&feel.tilt){const v=Math.max(-1,Math.min(1,(o.pvy||0)/1500));ctx.translate(0,-R*feel.boingSize);ctx.rotate(dir*v*feel.tilt*Math.PI/180);ctx.translate(0,R*feel.boingSize)}
+  SP.skel.updateWorldTransform(sp.Physics.update);SP.renderer.draw(SP.skel);ctx.restore();return true}
 function drawBall(x,y,dir,opts){
   const o=opts||{};let sx=1,sy=1;
   // rise, land and slam pictures are already stretched or squashed, so code adds only a little on top
-  const sq=feel.skin==='boing'?feel.squashAmt*(SPR[pickPose(o)]&&ART_STRETCHED[pickPose(o)]?0.35:1):1;
+  const sq=spineOn()?0:feel.skin!=='ball'?feel.squashAmt*(SPR[pickPose(o)]&&ART_STRETCHED[pickPose(o)]?0.35:1):1;
   if(o.squash){sx=1+0.42*sq*o.squash;sy=1-0.42*sq*o.squash}
   else if(o.vy){const k=Math.min(Math.abs(o.vy)/2600,0.28)*sq;sx=1-k;sy=1+k}
   ctx.save();ctx.translate(x,y+R);ctx.scale(sx,sy);
   if(o.rot){ctx.translate(0,-R);ctx.rotate(o.rot);ctx.translate(0,R)}
-  if(!o.outline&&feel.skin==='boing'&&drawBoing(o,dir)){ctx.restore();return}
+  if(!o.outline&&spineOn()&&drawSpine(o,dir)){ctx.restore();return}
+  if(!o.outline&&feel.skin!=='ball'&&drawBoing(o,dir)){ctx.restore();return}
   if(o.outline){ctx.setLineDash([6,5]);ctx.strokeStyle=C.ink;ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,-R,R,0,7);ctx.stroke();ctx.setLineDash([])}
   else{ctx.fillStyle=C.ball;ctx.beginPath();ctx.arc(0,-R,R,0,7);ctx.fill();ctx.strokeStyle=C.ink;ctx.lineWidth=3;ctx.stroke()}
   const ex=dir*7,ey=-R-4;
@@ -642,8 +683,8 @@ function render(){
       if(TYPES[sel.type].rs){ctx.fillStyle=C.accent;ctx.beginPath();ctx.arc(sel.x+sel.w,sel.y+PH/2,13/s+4,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.fillRect(sel.x+sel.w-1.5/s*2,sel.y+PH/2-6/s,3/s,12/s)}
     }
   } else {
-    trail.forEach((q,i)=>{ctx.globalAlpha=(i+1)/trail.length*0.28;ctx.fillStyle=p.combo>=2?C.accent:(feel.skin==='boing'?'#FF6A55':C.ball);ctx.beginPath();ctx.arc(q.x,q.y,R*(0.5+0.5*(i+1)/trail.length),0,7);ctx.fill()});ctx.globalAlpha=1;
-    if(!(deadT>0)||feel.skin==='boing')drawBall(p.x,p.y,p.dir,{squash:deadT>0?0:p.squash,vy:p.squash||deadT>0?0:p.vy,pvy:p.vy,slam:p.slam&&!(deadT>0),happy:!!win,rot:win?win.rot:0,dead:deadT>0});
+    trail.forEach((q,i)=>{ctx.globalAlpha=(i+1)/trail.length*0.28;ctx.fillStyle=p.combo>=2?C.accent:(feel.skin!=='ball'?'#FF6A55':C.ball);ctx.beginPath();ctx.arc(q.x,q.y,R*(0.5+0.5*(i+1)/trail.length),0,7);ctx.fill()});ctx.globalAlpha=1;
+    if(!(deadT>0)||feel.skin!=='ball')drawBall(p.x,p.y,p.dir,{squash:deadT>0?0:p.squash,vy:p.squash||deadT>0?0:p.vy,pvy:p.vy,slam:p.slam&&!(deadT>0),happy:!!win,rot:win?win.rot:0,dead:deadT>0});
     if(feel.showHitbox&&!(deadT>0)){ctx.setLineDash([5,4]);ctx.strokeStyle=C.ink;ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x,p.y,R,0,7);ctx.stroke();ctx.setLineDash([])}
     if(feel.fastTurn&&!win&&!(deadT>0)&&!p.slam&&p.combo>=1&&turnsAt(nextCombo(p.combo))){const r=simT-p.lastSlamT;if(r<feel.fastWindow){const f=1-r/feel.fastWindow;ctx.lineCap='round';ctx.strokeStyle=C.accent;ctx.lineWidth=5;ctx.beginPath();ctx.arc(p.x,p.y,R+10,-Math.PI/2,-Math.PI/2+f*Math.PI*2);ctx.stroke()}}
   }
@@ -661,6 +702,7 @@ function bounds(o){if(TYPES[o.type].pt)return o.type==='goal'?{x:o.x-10,y:o.y-44
 
 // ---------- loop ----------
 let last=performance.now(),acc=0,hudT=0;
+spineBoot();
 function frame(now){
   let dt=Math.min(0.05,(now-last)/1000);last=now;
   if(mode==='play'&&!paused){let ts=1;if(win){win.real+=dt;const r=win.real;ts=r<0.1?0.04:r<0.9?0.3+0.7*(r-0.1)/0.8:1}acc+=dt*ts;while(acc>=1/120){step(1/120);acc-=1/120}updFx(dt*ts)}
