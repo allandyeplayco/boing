@@ -206,7 +206,7 @@ const FEEL=[
  ['restartOnDeath','Dying restarts the level',0,1,1,'bool'],
  ['deathArc','Death: pop up and fall off screen',0,1,1,'bool']
 ];
-const DEF={gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.05,slamMult:1.6,comboStep:1.15,comboMax:4,late:0.1,drift:0,springMult:1.7,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:0,fastWindow:0.35,chainReset:1,v2:1};
+const DEF={gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.05,slamMult:1.6,comboStep:1.15,comboMax:4,late:0.1,drift:0,springMult:1.7,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:0,fastWindow:0.35,chainReset:1,v2:1,v3:1};
 const TURNS=[['every','Every slam'],['chain','Every slam after the 1st'],['second','Every 2nd slam'],['never','Never']];
 const SEGS={turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
 
@@ -232,7 +232,7 @@ const store={
   set(k,v){MEM[k]=JSON.parse(JSON.stringify(v));try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}cloudMark(k,MEM[k])}
 };
 function collectLocal(){const o=Object.assign({},MEM);try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('sbl_')){try{o[k]=JSON.parse(localStorage.getItem(k))}catch(_){}}}}catch(_){}return o}
-let feel=(()=>{const s=store.get('sbl_feel')||{};if(!s.turn&&('flip' in s))s.turn=!s.flip?'never':s.double?'second':'every';delete s.flip;delete s.double;if(!s.v2){s.turn='chain';s.v2=1}return Object.assign({},DEF,s)})();
+let feel=(()=>{const s=store.get('sbl_feel')||{};if(!s.turn&&('flip' in s))s.turn=!s.flip?'never':s.double?'second':'every';delete s.flip;delete s.double;if(!s.v2){s.turn='chain';s.v2=1}if(!s.v3){if(s.skin==='boing')s.skin='spine';s.v3=1}return Object.assign({},DEF,s)})();
 store.set('sbl_feel',feel);
 
 function sample(){
