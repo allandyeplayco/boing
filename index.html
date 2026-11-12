@@ -866,7 +866,7 @@ let toastT=0;function toast(s){const t=$('toast');t.textContent=s;t.classList.ad
 try{navigator.wakeLock&&navigator.wakeLock.request('screen').catch(()=>{})}catch(_){}
 
 function applyAll(){
-  feel=Object.assign({},DEF,store.get('sbl_feel')||{});
+  feel=Object.assign({},DEF,store.get('sbl_feel')||{});if(!feel.v3){if(feel.skin==='boing')feel.skin='spine';feel.v3=1;store.set('sbl_feel',feel)}
   const pk=store.get('sbl_pack');
   if(pk&&Array.isArray(pk.levels)&&pk.levels.length){pack=pk;while(pack.levels.length<NLEV)pack.levels.push(starter(pack.levels.length));if(!(pack.cur>=0&&pack.cur<NLEV))pack.cur=0}
   level=pack.levels[pack.cur];nextId=level.objs.reduce((m,o)=>Math.max(m,+o.id||0),0);
