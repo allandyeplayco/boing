@@ -628,7 +628,11 @@ async function spineBoot(){
     SP.ready=true;
   }catch(e){SP.failed=true}
 }
-function spineAnim(o){if(o.dead)return'dead';if(o.happy)return'win';if(o.slam)return'slam';
+function spineAnim(o,dir){if(o.dead){SP.lastDir=dir;return'dead'}if(o.happy){SP.lastDir=dir;return'win'}if(o.slam)return'slam';
+  // turning around (the DOUBLE slam) plays 'summersault' once, then goes back to 'air'
+  const turned=SP.lastDir!=null&&dir!==SP.lastDir;SP.lastDir=dir;
+  if(turned&&SP.has('summersault')){SP.restart=true;SP.lastSq=o.squash||0;return'summersault'}
+  if(SP.cur==='summersault'){const e=SP.state.getCurrent(0);if(e&&!e.isComplete()){SP.lastSq=o.squash||0;return'summersault'}}
   // a landing (squash jumps up) starts 'land', which plays to its end before going back to 'air'
   const sq=o.squash||0,hit=sq>(SP.lastSq||0)+0.2;SP.lastSq=sq;
   SP.restart=hit&&SP.has('land');if(SP.restart)return'land';
@@ -636,10 +640,10 @@ function spineAnim(o){if(o.dead)return'dead';if(o.happy)return'win';if(o.slam)re
   return'air'}
 function drawSpine(o,dir){
   const sp=window.spine,now=performance.now()/1000,dt=Math.min(0.1,SP.last?now-SP.last:0);SP.last=now;
-  let a=spineAnim(o);if(!SP.has(a))a=SP.has('air')?'air':null;if(!a)return false;
+  let a=spineAnim(o,dir);if(!SP.has(a))a=SP.has('air')?'air':null;if(!a)return false;
   const st=SP.state;st.data.defaultMix=feel.poseBlend;
   const LOOP={dead:1,win:1};
-  if(a!==SP.cur||(a==='land'&&SP.restart)){SP.cur=a;const e=st.setAnimation(0,a,!!LOOP[a]);if(a==='air')e.timeScale=0}
+  if(a!==SP.cur||((a==='land'||a==='summersault')&&SP.restart)){SP.restart=false;SP.cur=a;const e=st.setAnimation(0,a,!!LOOP[a]);if(a==='air')e.timeScale=0}
   const e=st.getCurrent(0);
   if(a==='air'&&e){const k=Math.max(-1,Math.min(1,(o.pvy||0)/feel.bounce));e.trackTime=(0.5+0.5*k)*e.animation.duration*0.999}
   st.update(dt);st.apply(SP.skel);
