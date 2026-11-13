@@ -232,9 +232,9 @@ const FEEL=[
  ['intro','Level start: show the flag first',0,0,0,'seg'],
  ['goalArrow','Arrow to the flag when it is off screen',0,1,1,'bool']
 ];
-const DEF={art:'greybox',anchor:'wide',bgDepth:1,gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,intro:'fly',goalArrow:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,chainReset:1,lateFair:1,v2:1,v3:1};
+const DEF={art:'painted',anchor:'wide',bgDepth:1,gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,intro:'fly',goalArrow:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,chainReset:1,lateFair:1,v2:1,v3:1};
 const TURNS=[['every','Every slam'],['chain','Every slam after the 1st'],['second','Every 2nd slam'],['never','Never']];
-const SEGS={art:[['greybox','Greybox world'],['plain','Plain (old)']],anchor:[['wide','Wide ones'],['all','All'],['none','None']],intro:[['fly','Fly from flag'],['zoom','Zoom out, then in'],['off','Off']],turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
+const SEGS={art:[['painted','Painted (concept)'],['greybox','Greybox'],['plain','Plain (old)']],anchor:[['wide','Wide ones'],['all','All'],['none','None']],intro:[['fly','Fly from flag'],['zoom','Zoom out, then in'],['off','Off']],turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
 
 const MEM={};
 const CLOUD={kv:null,ready:false,booted:false,localDirty:false,timer:0,busy:false,again:false,ref:null};
@@ -550,6 +550,7 @@ function drawObj(o,t,ghost){
   ctx.globalAlpha=ghost?0.6:1;
   switch(o.type){
     case 'plat':
+      if(paintOn()&&drawPaintedCap(o,LOOKC.get(o)==='float'?'float':'cap'))break;
       ctx.fillStyle=C.ink;rr(o.x,o.y,o.w,PH,7);ctx.fill();
       if(artOn())drawCap(o);else{ctx.fillStyle=C.ink3;rr(o.x+4,o.y+3,o.w-8,4,2);ctx.fill()}break;
     case 'brk2':
@@ -698,6 +699,72 @@ function drawBall(x,y,dir,opts){
     ctx.fillStyle=C.ink;ctx.beginPath();ctx.arc(ex+dir*2.5,ey+Math.max(-2.5,Math.min(2.5,(o.vy||0)/500)),3.2,0,7);ctx.fill()}
   ctx.restore();
 }
+// ---------- world art (painted) ----------
+// Pieces cut from Allan's ChatGPT concept (art/world/src/concept-1.png) by tools/cut_world.py into art/world/*.png.
+// The concept is drawn at about 0.55 game units per pixel (ART_K). Caps are 3-slice (left end, repeating middle, right end);
+// the walk line is pixel row 8 of every cap picture. Anchored platforms use the stone cap on a layered brick base,
+// floating ones use the plank platform. Falls back to the greybox until the pictures have loaded.
+const ART_K=0.55, ART_DIR='art/world/', ART_WALK=8;
+const WIMG={};for(const n of ['cap-left','cap-mid','cap-right','float-left','float-mid','float-right','base-mid','deco-banner','deco-vine','bg-far','cloud-1','cloud-2','cloud-3']){const i=new Image();i.src=ART_DIR+n+'.png';WIMG[n]=i}
+const wimgOk=n=>{const i=WIMG[n];return i&&i.complete&&i.naturalWidth>0};
+const paintOn=()=>feel.art==='painted'&&wimgOk('cap-mid')&&wimgOk('base-mid')&&wimgOk('bg-far');
+const LOOKC=new Map();
+const PAINT={fog:'#D0D8FA',skyTop:'#45CCF0',bgLow:'#CFE9EF',edge:'#2E3150'};
+let basePat=null;
+function drawPaintedCap(o,kind){
+  const L=WIMG[kind+'-left'],M=WIMG[kind+'-mid'],Rr=WIMG[kind+'-right'];if(!wimgOk(kind+'-left')||!wimgOk(kind+'-mid'))return false;
+  const h=M.naturalHeight*ART_K,y=o.y-ART_WALK*ART_K;let lw=L.naturalWidth*ART_K,rw=Rr.naturalWidth*ART_K;
+  if(lw+rw>o.w){const f=o.w/(lw+rw);lw*=f;rw*=f}
+  const x0=o.x+lw,x1=o.x+o.w-rw,mw=M.naturalWidth*ART_K;
+  if(x1>x0){ctx.save();ctx.beginPath();ctx.rect(x0-0.5,y-2,x1-x0+1,h+4);ctx.clip();for(let x=x0;x<x1;x+=mw)ctx.drawImage(M,x,y,mw+0.6,h);ctx.restore()}
+  ctx.drawImage(L,o.x,y,lw,h);ctx.drawImage(Rr,o.x+o.w-rw,y,rw,h);return true}
+function drawPaintedStructures(objs,c,s){
+  const hw=W/2/s,hh=H/2/s,bot=c.y+hh+40;
+  let low=-1e9;if(world==='level')for(const o of objs)low=Math.max(low,o.y);
+  const floor=world==='level'?low+560:bot+400;
+  const bases=[];
+  for(const o of objs){if(!LANDABLE[o.type])continue;const lk=lookOf(o,objs);LOOKC.set(o,lk);if(lk==='base'&&!gone(o))bases.push(o)}
+  if(!basePat){basePat=ctx.createPattern(WIMG['base-mid'],'repeat')}
+  bases.sort((a,b)=>a.y-b.y);const lowB=bases.length?bases[bases.length-1].y:0;
+  for(const o of bases){
+    const x0=o.x+12,x1=o.x+o.w-12,y0=o.y+14,y1=Math.min(floor,bot);if(y1<=y0||o.x>c.x+hw+40||o.x+o.w<c.x-hw-40)continue;
+    const k=Math.min(0.5,(lowB-o.y)/1300);
+    ctx.save();
+    basePat.setTransform(new DOMMatrix().scale(ART_K*1.6));ctx.fillStyle=basePat;ctx.fillRect(x0,y0,x1-x0,y1-y0);
+    // decorations, picked per platform so they stay put
+    const r=lh((+o.id||0)*7919+13);
+    if(o.w>=220&&y1-y0>220){
+      const B=WIMG['deco-banner'],V=WIMG['deco-vine'];
+      if(r<0.45&&wimgOk('deco-banner')){const w=B.naturalWidth*ART_K*0.8,h=B.naturalHeight*ART_K*0.8;ctx.drawImage(B,o.x+o.w*(0.3+0.4*lh(+o.id||0))-w/2,y0+40,w,h)}
+      else if(r<0.85&&wimgOk('deco-vine')){const w=V.naturalWidth*ART_K,h=V.naturalHeight*ART_K;const right=r>0.65;ctx.save();ctx.translate(right?x1:x0,y0+4);if(!right)ctx.scale(-1,1);ctx.drawImage(V,-w+18,0,w,h);ctx.restore()}
+    }
+    // higher bases sit further back: a little hazier
+    if(k>0){ctx.fillStyle=`rgba(208,216,250,${k})`;ctx.fillRect(x0,y0,x1-x0,y1-y0)}
+    ctx.fillStyle='rgba(40,40,80,0.28)';ctx.fillRect(x0,y0,x1-x0,16); // shade under the cap
+    // fade into the fog at the bottom
+    const g=ctx.createLinearGradient(0,floor-520,0,floor);g.addColorStop(0,'rgba(208,216,250,0)');g.addColorStop(1,'rgba(208,216,250,1)');ctx.fillStyle=g;ctx.fillRect(x0-4,Math.max(y0,floor-520),x1-x0+8,y1-Math.max(y0,floor-520));
+    // dark outline down both sides
+    const ge=ctx.createLinearGradient(0,floor-520,0,floor);ge.addColorStop(0,PAINT.edge);ge.addColorStop(1,'rgba(46,49,80,0)');ctx.fillStyle=ge;ctx.globalAlpha=1-k;
+    ctx.fillRect(x0-3,y0,3,y1-y0);ctx.fillRect(x1,y0,3,y1-y0);
+    ctx.restore();
+  }
+}
+function drawPaintedBg(c,s){
+  const d=feel.bgDepth,fFar=Math.min(1,0.08*d),fCl=Math.min(1,0.4*d);
+  let low=0;if(world==='level'){low=-1e9;for(const o of level.objs)low=Math.max(low,o.y)}else low=300;
+  const B=WIMG['bg-far'],bs=H/1250,bw=B.naturalWidth*bs,bh=B.naturalHeight*bs;
+  const by=H/2+(low+120-c.y)*s*fFar-bh; // top of the painting on screen
+  const g=ctx.createLinearGradient(0,by-H,0,by+40);g.addColorStop(0,'#2FB4EA');g.addColorStop(1,PAINT.skyTop);ctx.fillStyle=g;ctx.fillRect(0,0,W,Math.max(0,by+2));
+  const ox=-(((c.x*s*fFar)%bw)+bw)%bw;for(let x=ox;x<W;x+=bw)ctx.drawImage(B,x,by,bw+1,bh);
+  {const fy=by+bh*0.82,gf=ctx.createLinearGradient(0,fy,0,by+bh);gf.addColorStop(0,'rgba(207,233,239,0)');gf.addColorStop(1,PAINT.bgLow);ctx.fillStyle=gf;ctx.fillRect(0,fy,W,by+bh-fy)}
+  if(by+bh<H){const g2=ctx.createLinearGradient(0,by+bh-2,0,by+bh+H*0.5);g2.addColorStop(0,PAINT.bgLow);g2.addColorStop(1,PAINT.fog);ctx.fillStyle=g2;ctx.fillRect(0,by+bh-1,W,H)}
+  // drifting clouds, closer than the painting
+  const drift=performance.now()/1000*5;
+  for(let row=-8;row<=8;row++){const wy=low-300-row*460,y=H/2+(wy-c.y)*s*fCl;if(y<-150||y>H+150)continue;
+    const span=560,u0=c.x*fCl+drift-W/2/s,i0=Math.floor(u0/span)-1,i1=Math.floor((u0+W/s)/span)+1;
+    for(let i=i0;i<=i1;i++){const r=lh(i*31+row*977);if(r<0.5)continue;const im=WIMG['cloud-'+(1+Math.floor(lh(i*5+row*3)*3))];if(!im||!im.complete||!im.naturalWidth)continue;
+      const k=(0.8+r*0.5)*s*ART_K*1.3,x=(i*span+lh(i*7+row)*span*0.6-u0)*s;ctx.globalAlpha=0.9;ctx.drawImage(im,x-im.naturalWidth*k/2,y-im.naturalHeight*k/2,im.naturalWidth*k,im.naturalHeight*k);ctx.globalAlpha=1}}
+}
 // ---------- world art (greybox) ----------
 // Temp art to work out the world's structure before real art. Feel "World art" switches between this and the plain look.
 // Every landable top gets the same cream cap (drawCap). Under it, each bar piece is either:
@@ -790,7 +857,7 @@ function drawWorldBg(c,s){
 }
 function drawBg(c,s){
   ctx.setTransform(DPR,0,0,DPR,0,0);
-  if(artOn())drawWorldBg(c,s);else{ctx.fillStyle=C.sky;ctx.fillRect(0,0,W,H);
+  if(paintOn())drawPaintedBg(c,s);else if(artOn())drawWorldBg(c,s);else{ctx.fillStyle=C.sky;ctx.fillRect(0,0,W,H);
   const g=44,ox=((-c.x*s*0.5)%g+g)%g,oy=((-c.y*s*0.5)%g+g)%g;ctx.fillStyle=C.dot;
   for(let x=ox;x<W;x+=g)for(let y=oy;y<H;y+=g){ctx.fillRect(x-1.5,y-1.5,3,3)}
   }
@@ -834,7 +901,7 @@ function render(){
     ctx.strokeStyle='rgba(24,35,58,0.1)';ctx.beginPath();for(let x=x0;x<c.x+hw;x+=100){ctx.moveTo(x,c.y-hh);ctx.lineTo(x,c.y+hh)}for(let y=y0;y<c.y+hh;y+=100){ctx.moveTo(c.x-hw,y);ctx.lineTo(c.x+hw,y)}ctx.stroke();
   }
   const objs=mode==='play'?objsAround(c.x,c.y,hw,hh):level.objs;
-  if(artOn())drawStructures(objs,c,s);
+  LOOKC.clear();if(artOn()){if(paintOn())drawPaintedStructures(objs,c,s);else drawStructures(objs,c,s)}
   for(const o of objs){if(o.type!=='coin')drawObj(o,simT)}
   for(const o of objs){if(o.type==='coin')drawObj(o,simT)}
   if(mode==='edit'){
