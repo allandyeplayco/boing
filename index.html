@@ -59,40 +59,42 @@ button.on{background:var(--accent)}
 .w-title{font:700 clamp(68px,19vw,128px)/0.9 var(--f-display);color:var(--ball);letter-spacing:.02em;transform:rotate(-3deg);
   text-shadow:4px 0 var(--ink),-4px 0 var(--ink),0 4px var(--ink),0 -4px var(--ink),3px 3px var(--ink),-3px 3px var(--ink),3px -3px var(--ink),-3px -3px var(--ink),0 10px 0 var(--ink)}
 .w-title span{display:inline-block}
-.w-panel{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;width:min(340px,calc(100vw - 32px));padding:18px 16px 18px;border-radius:34px;
-  background:linear-gradient(#FFFBF3,#F6EADF);border:6px solid #1E2C5C;box-shadow:inset 0 0 0 3px #fff,inset 0 -6px 0 rgba(30,44,92,.08),0 8px 0 #16224A,0 20px 40px rgba(16,24,60,.45)}
-.w-lv{font:700 15px/1 var(--f-display);letter-spacing:.06em;text-transform:uppercase;color:#1E2C5C}
-.w-clear{position:relative;font:700 46px/1.05 var(--f-display);letter-spacing:.01em;color:#FFC21E;margin:2px 0 0;
-  text-shadow:4px 0 #1E2C5C,-4px 0 #1E2C5C,0 4px #1E2C5C,0 -4px #1E2C5C,3px 3px #1E2C5C,-3px 3px #1E2C5C,3px -3px #1E2C5C,-3px -3px #1E2C5C,0 8px 0 #1E2C5C}
-.w-clear::after{content:attr(data-t);position:absolute;inset:0;background:linear-gradient(#FFF6A8 0%,#FFE14A 38%,#FFB300 75%,#F59A00 100%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none}
-.w-clear::before{content:'';position:absolute;left:10%;right:10%;top:16%;height:16%;border-radius:20px;background:rgba(255,255,255,.55);filter:blur(2px);z-index:1;pointer-events:none;mix-blend-mode:soft-light}
-.w-stars{position:relative;display:flex;align-items:flex-end;justify-content:center;gap:2px;height:112px;width:100%}
-.w-stars::before{content:'';position:absolute;left:50%;top:50%;width:260px;height:200px;transform:translate(-50%,-50%);border-radius:50%;
-  background:radial-gradient(closest-side,rgba(255,236,150,.95),rgba(255,226,120,.55) 45%,rgba(255,226,120,0)),repeating-conic-gradient(from 0deg,rgba(255,214,90,.28) 0 8deg,transparent 8deg 22deg);
+.w-panel{--plum:#5B3A60;--plum2:#7A4F7E;position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;width:min(340px,calc(100vw - 32px));padding:34px 16px 20px;margin-top:34px;border-radius:36px;
+  background:radial-gradient(120% 60% at 50% 0%,#FFF8F0,rgba(255,248,240,0) 70%),linear-gradient(#FFF0E6,#FFE6D6 70%,#FBDCCB);
+  border:8px solid #A77BA6;box-shadow:0 0 0 3px var(--plum),inset 0 0 0 3px #FFD45E,inset 0 0 0 6px #FFF4E4,0 10px 0 #4A2F50,0 22px 44px rgba(40,20,50,.45)}
+.w-crown{position:absolute;top:-62px;left:50%;width:250px;transform:translateX(-50%);pointer-events:none;filter:drop-shadow(0 3px 0 rgba(74,47,80,.35))}
+.w-lv{font:700 16px/1 var(--f-display);letter-spacing:.05em;text-transform:uppercase;color:var(--plum);margin-top:2px}
+.w-clear{width:300px;max-width:100%;height:auto;margin:0 0 -4px}
+.w-stars{position:relative;display:flex;align-items:flex-end;justify-content:center;gap:0;height:100px;width:100%}
+.w-stars::before{content:'';position:absolute;left:50%;top:50%;width:270px;height:210px;transform:translate(-50%,-50%);border-radius:50%;
+  background:radial-gradient(closest-side,rgba(255,240,170,.95),rgba(255,226,120,.55) 45%,rgba(255,226,120,0)),repeating-conic-gradient(from 0deg,rgba(255,206,90,.3) 0 8deg,transparent 8deg 22deg);
   -webkit-mask:radial-gradient(closest-side,#000 55%,transparent);mask:radial-gradient(closest-side,#000 55%,transparent);opacity:0;transition:opacity .4s .3s}
 #win.in .w-stars.lit::before{opacity:1}
-.w-star{position:relative;width:86px;height:auto;opacity:0;transform:scale(.2);filter:drop-shadow(0 4px 0 rgba(30,44,92,.25))}
-.w-star:nth-child(2){width:108px;margin-bottom:10px;z-index:1}
+.w-star{position:relative;width:82px;height:auto;opacity:0;transform:scale(.2);filter:drop-shadow(0 4px 0 rgba(91,58,96,.28))}
+.w-star:nth-child(2){width:100px;margin:0 -6px 12px;z-index:1}
 .w-star.pop{animation:wstar .5s cubic-bezier(.2,1.9,.4,1) forwards}
 @keyframes wstar{0%{opacity:0;transform:scale(.2) rotate(-40deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
 .w-spark{position:absolute;top:22px;width:44px;height:50px;opacity:0;transition:opacity .3s 1.1s}
-.w-spark i{position:absolute;width:24px;height:9px;border-radius:9px;background:linear-gradient(#FFE45C,#FFB300);box-shadow:0 0 0 1.5px rgba(214,140,0,.35)}
+.w-spark i{position:absolute;width:24px;height:10px;border-radius:9px;background:linear-gradient(#FFE45C,#FFB300);box-shadow:0 0 0 1.5px rgba(214,140,0,.35)}
 .w-spark i:nth-child(1){left:6px;top:4px;transform:rotate(40deg)}.w-spark i:nth-child(2){left:0;top:24px;transform:rotate(-10deg)}
 .w-spark.l{left:0}.w-spark.r{right:0;transform:scaleX(-1)}
 #win.in .w-stars.lit .w-spark{opacity:1}
-.w-goal{font:600 15px/1.25 var(--f-display);color:#1E2C5C;min-height:1.25em;text-align:center}
-.w-panel .w-stats{width:100%;justify-content:space-around;background:linear-gradient(#2A3C78,#1A2758);border:3px solid #13204A;border-radius:22px;padding:10px 4px 9px;box-shadow:inset 0 3px 0 rgba(255,255,255,.14),0 4px 0 rgba(19,32,74,.35)}
+.w-goal{font:700 14px/1.25 var(--f-display);color:#5A2F52;min-height:1.25em;text-align:center}
+.w-panel .w-stats{width:100%;justify-content:space-around;background:linear-gradient(#C9A0CC,#9A6CA0 55%,#835689);border:3px solid var(--plum);border-radius:24px;padding:10px 4px 9px;box-shadow:inset 0 3px 0 rgba(255,255,255,.35),inset 0 -4px 0 rgba(74,47,80,.25),0 4px 0 rgba(74,47,80,.4)}
 .w-panel .w-stats div{min-width:0;flex:1;gap:3px}
-.w-panel .w-stats b{font:700 30px/1 var(--f-display);color:#FFD43B;text-shadow:0 2px 0 rgba(0,0,0,.25);display:flex;align-items:center;gap:4px}
-.w-panel .w-stats b img{width:28px;height:28px}
-.w-panel .w-stats span{font:700 12px/1 var(--f-display);letter-spacing:.06em;color:#B9CCFF}
-.w-panel .w-stats b span{font:inherit;color:inherit;letter-spacing:0}
-.w-panel .w-best{position:relative;background:none;padding:2px 46px;border-radius:0;font:700 30px/1.1 var(--f-display);letter-spacing:.04em;color:#FF3E8E;
-  text-shadow:2px 0 #fff,-2px 0 #fff,0 2px #fff,0 -2px #fff,0 4px 0 #A3155A,0 6px 8px rgba(163,21,90,.25);transform:rotate(-2deg)}
+.w-panel .w-stats div+div{border-left:2px solid rgba(255,255,255,.28)}
+.w-panel .w-stats b{font:700 30px/1 var(--f-display);color:#FFDE3D;display:flex;align-items:center;gap:4px;
+  text-shadow:2px 0 var(--plum),-2px 0 var(--plum),0 2px var(--plum),0 -2px var(--plum),0 3px 0 var(--plum)}
+.w-panel .w-stats b img{width:28px;height:auto}
+.w-panel .w-stats span{font:700 13px/1 var(--f-display);letter-spacing:.06em;color:#fff;text-shadow:0 1px 0 rgba(74,47,80,.6)}
+.w-panel .w-stats b span{font:inherit;color:inherit;letter-spacing:0;text-shadow:inherit}
+.w-panel .w-best{position:relative;background:none;padding:2px 46px;border-radius:0;font:700 26px/1.1 var(--f-display);letter-spacing:.03em;white-space:nowrap;color:#FF3E8E;
+  text-shadow:2.5px 0 #fff,-2.5px 0 #fff,0 2.5px #fff,0 -2.5px #fff,2px 2px #fff,-2px -2px #fff,0 5px 0 #B0195F,0 7px 10px rgba(176,25,95,.25);transform:rotate(-2deg)}
 .w-panel .w-best .w-spark{top:2px;width:40px;height:40px;opacity:1;transition:none}
 .w-panel .w-best .w-spark.l{left:-2px}.w-panel .w-best .w-spark.r{right:-2px}
-.w-panel .w-tap{font:700 22px/1 var(--f-display);color:#fff;background:linear-gradient(#34488C,#1E2C5C);border:3px solid #13204A;padding:14px 34px;border-radius:999px;box-shadow:inset 0 3px 0 rgba(255,255,255,.2),0 5px 0 #0F1A3E}
-.w-panel .w-prev{font:600 12px/1 var(--f-display);color:#4A5784}
+.w-panel .w-tap{font:700 23px/1 var(--f-display);color:#fff;background:linear-gradient(#D7AEDA,#A174A8 55%,#8A5C91);border:3px solid var(--plum);padding:14px 40px;border-radius:999px;
+  text-shadow:0 2px 0 rgba(74,47,80,.55);box-shadow:inset 0 3px 0 rgba(255,255,255,.4),inset 0 -4px 0 rgba(74,47,80,.25),0 5px 0 #4A2F50}
+.w-panel .w-prev{font:600 12px/1 var(--f-display);color:#7A5A7E}
 .w-best{font:700 15px/1 var(--f-display);background:var(--spring);color:#fff;padding:8px 14px;border-radius:999px;letter-spacing:.1em}
 .w-stats{display:flex;gap:4px;background:var(--ink);color:var(--paper);border-radius:14px;padding:10px 6px}
 .w-stats div{display:flex;flex-direction:column;align-items:center;min-width:66px;gap:4px}
@@ -102,7 +104,10 @@ button.on{background:var(--accent)}
 .w-tap{font:600 16px/1 var(--f-display);color:var(--paper);background:var(--ink);padding:11px 18px;border-radius:12px;opacity:0;transition:opacity .3s}
 .w-tap.on{opacity:1;animation:wpulse 1s ease-in-out infinite}
 #win.in .w-panel{animation:wpop .4s cubic-bezier(.2,1.6,.4,1) both}
-#win.in .w-clear{animation:wslam .5s .1s cubic-bezier(.2,1.6,.4,1) both}
+#win.in .w-clear{animation:wslam2 .5s .1s cubic-bezier(.2,1.6,.4,1) both}
+#win.in .w-crown{animation:wcrown .5s .05s cubic-bezier(.2,1.8,.4,1) both}
+@keyframes wslam2{0%{transform:scale(2.4) rotate(-8deg);opacity:0}55%{opacity:1}100%{transform:none}}
+@keyframes wcrown{0%{transform:translateX(-50%) translateY(30px) scale(.4);opacity:0}100%{transform:translateX(-50%);opacity:1}}
 #win.in .w-title{animation:wslam .55s cubic-bezier(.2,1.6,.4,1) both}
 #win.in .w-title span{animation:wwob 1.1s ease-in-out infinite;animation-delay:calc(var(--i) * .09s + .5s)}
 #win.in .w-stats{animation:wpop .4s .25s cubic-bezier(.2,1.6,.4,1) both}
@@ -162,8 +167,9 @@ textarea{width:100%;height:180px;font:400 11px/1.4 var(--f-mono);border:2px soli
   <div id="hint" hidden>Tap anywhere to SLAM<small>slam = big bounce + turn around · slam twice to keep going</small></div>
   <div id="toast"></div>
   <div id="win" hidden><div class="w-card"><div class="w-panel">
+    <img class="w-crown" src="art/ui/crown.png" alt="">
     <div class="w-lv" id="wLv">Level 1</div>
-    <div class="w-clear" data-t="Level clear!">Level clear!</div>
+    <img class="w-clear" src="art/ui/title.png" alt="Level clear!">
     <div class="w-stars" id="wStars" aria-label="Stars"><img class="w-star" src="art/ui/star-empty.png" alt=""><img class="w-star" src="art/ui/star-empty.png" alt=""><img class="w-star" src="art/ui/star-empty.png" alt=""><span class="w-spark l"><i></i><i></i></span><span class="w-spark r"><i></i><i></i></span></div>
     <div class="w-goal" id="wGoal"></div>
     <div class="w-stats"><div><b id="wSlams">0</b><span>slams</span></div><div><b><img src="art/ui/coin.png" alt=""><span id="wCoins">0</span></b><span>coins</span></div><div><b id="wTime">0.00</b><span>seconds</span></div></div>
@@ -452,7 +458,7 @@ function winStep(dt){
   if(!w.banner&&w.age>0.3){w.banner=true;showBanner()}
   if(!w.ready&&w.age>1.2){w.ready=true;$('wTap').classList.add('on')}
   const s=scale();
-  pcam.x+=(o.x-pcam.x)*(1-Math.exp(-dt*4));pcam.y+=(o.y-H*0.28/s-pcam.y)*(1-Math.exp(-dt*4));
+  pcam.x+=(o.x-pcam.x)*(1-Math.exp(-dt*4));pcam.y+=(o.y-H*0.33/s-pcam.y)*(1-Math.exp(-dt*4));
 }
 function countUp(el,to,dec,ms,onTick,fmt){const t0=performance.now();let lastI=-1;const show=v=>{el.textContent=fmt?fmt(v.toFixed(dec)):v.toFixed(dec)};const f=now=>{const k=Math.min(1,(now-t0)/ms),e=1-Math.pow(1-k,3),v=to*e;show(v);if(onTick&&Math.floor(v)!==lastI){lastI=Math.floor(v);if(lastI>0)onTick(lastI)}if(k<1)requestAnimationFrame(f);else show(to)};requestAnimationFrame(f)}
 // Stars: 3 = within the fewest slams the bot found (par), 2 = a few more, 1 = any clear.
