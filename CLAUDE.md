@@ -2,7 +2,7 @@
 
 ## Who you're working with
 - Allan is a game artist at Playco and new to Claude Code. Explain things plainly, skip jargon, and say what he should click or run.
-- He tests on his phone. Every change has to work and feel right at portrait phone size.
+- He tests on his phone. Every change has to work and feel right at portrait phone size. On a computer the game shows inside a 390×844 portrait phone frame (Feel toggle `phoneFrame`, on by default; CSS under `html.phone`, only at 600px wide and up), so he can judge it there too. Keep it on.
 - When he's unsure between two versions of a rule, add a toggle under **Feel** so he can compare them in play. Don't pick one for him.
 - This prototype is a pitch for an original game. Work was asking employees for new game prototypes.
 

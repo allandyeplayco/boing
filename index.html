@@ -101,6 +101,8 @@ button.on{background:var(--accent)}
 .sl input[type=checkbox]{width:22px;height:22px;accent-color:var(--accent)}
 textarea{width:100%;height:180px;font:400 11px/1.4 var(--f-mono);border:2px solid var(--ink);border-radius:10px;padding:8px;background:#fff;color:var(--ink);resize:vertical}
 @media (prefers-reduced-motion:reduce){#hint,#toast{transition:none}}
+/* Phone-size view on a computer: the game sits in a portrait iPhone-sized frame (390x844) so it looks the way it does on a phone. */
+@media (min-width:600px){html.phone,html.phone body{background:#0E1524}html.phone #app{inset:0;margin:auto;width:390px;height:min(844px,calc(100vh - 24px));border-radius:32px;overflow:hidden;box-shadow:0 0 0 10px #232C3F,0 20px 60px rgba(0,0,0,.5);background:var(--sky)}}
 </style>
 
 <div id="app">
@@ -221,9 +223,10 @@ const FEEL=[
  ['sound','Sound',0,1,1,'bool'],
  ['bounceSfx','Sound on normal bounces',0,1,1,'bool'],
  ['restartOnDeath','Dying restarts the level',0,1,1,'bool'],
- ['deathArc','Death: pop up and fall off screen',0,1,1,'bool']
+ ['deathArc','Death: pop up and fall off screen',0,1,1,'bool'],
+ ['phoneFrame','Phone-size view on a computer',0,1,1,'bool']
 ];
-const DEF={gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,chainReset:1,lateFair:1,v2:1,v3:1};
+const DEF={gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,chainReset:1,lateFair:1,v2:1,v3:1};
 const TURNS=[['every','Every slam'],['chain','Every slam after the 1st'],['second','Every 2nd slam'],['never','Never']];
 const SEGS={turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
 
@@ -728,7 +731,10 @@ function bounds(o){if(TYPES[o.type].pt)return o.type==='goal'?{x:o.x-10,y:o.y-44
 // ---------- loop ----------
 let last=performance.now(),acc=0,hudT=0;
 spineBoot();
-function frame(now){
+let phoneOn=null;
+function phoneView(){const on=!!feel.phoneFrame;if(on!==phoneOn){phoneOn=on;document.documentElement.classList.toggle('phone',on);resize()}}
+phoneView();
+function frame(now){phoneView();
   if(BOT.busy){last=now;requestAnimationFrame(frame);return}
   let dt=Math.min(0.05,(now-last)/1000);last=now;
   if(mode==='play'&&!paused){let ts=1;if(win){win.real+=dt;const r=win.real;ts=r<0.1?0.04:r<0.9?0.3+0.7*(r-0.1)/0.8:1}acc+=dt*ts;while(acc>=1/120){step(1/120);acc-=1/120}updFx(dt*ts)}
