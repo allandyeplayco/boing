@@ -54,24 +54,45 @@ button.on{background:var(--accent)}
 .lvl button{background:transparent;padding:8px 12px;font-size:20px;border-radius:9px}
 .lvl button:active{background:var(--ink-2)}
 .lvl span{font:600 14px/1 var(--f-display);padding:0 4px;white-space:nowrap}
-#win{position:absolute;inset:0;display:flex;justify-content:center;align-items:flex-start;padding-top:calc(env(safe-area-inset-top,0px) + 12vh);pointer-events:none;z-index:20}
+#win{position:absolute;inset:0;display:flex;justify-content:center;align-items:flex-start;padding-top:calc(env(safe-area-inset-top,0px) + 7vh);pointer-events:none;z-index:20}
 .w-card{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
 .w-title{font:700 clamp(68px,19vw,128px)/0.9 var(--f-display);color:var(--ball);letter-spacing:.02em;transform:rotate(-3deg);
   text-shadow:4px 0 var(--ink),-4px 0 var(--ink),0 4px var(--ink),0 -4px var(--ink),3px 3px var(--ink),-3px 3px var(--ink),3px -3px var(--ink),-3px -3px var(--ink),0 10px 0 var(--ink)}
 .w-title span{display:inline-block}
-.w-panel{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;background:var(--paper);border:4px solid var(--ink);border-radius:26px;padding:18px 18px 16px;width:min(330px,calc(100vw - 40px));box-shadow:0 10px 0 var(--ink),0 18px 40px rgba(24,35,58,.35)}
-.w-lv{font:500 11px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
-.w-clear{font:700 40px/1 var(--f-display);color:var(--ball);letter-spacing:.03em;transform:rotate(-2deg);margin:-2px 0 2px;
-  text-shadow:3px 0 var(--ink),-3px 0 var(--ink),0 3px var(--ink),0 -3px var(--ink),2px 2px var(--ink),-2px 2px var(--ink),2px -2px var(--ink),-2px -2px var(--ink),0 6px 0 var(--ink)}
-.w-stars{display:flex;align-items:flex-end;gap:6px;height:84px}
-.w-star{width:64px;height:64px;opacity:0;transform:scale(.2)}
-.w-star:nth-child(2){width:80px;height:80px;margin-bottom:8px}
-.w-star .fill{fill:#D7DEE8}.w-star.got .fill{fill:var(--ball)}
-.w-star.pop{animation:wstar .45s cubic-bezier(.2,1.9,.4,1) forwards}
+.w-panel{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;width:min(340px,calc(100vw - 32px));padding:18px 16px 18px;border-radius:34px;
+  background:linear-gradient(#FFFBF3,#F6EADF);border:6px solid #1E2C5C;box-shadow:inset 0 0 0 3px #fff,inset 0 -6px 0 rgba(30,44,92,.08),0 8px 0 #16224A,0 20px 40px rgba(16,24,60,.45)}
+.w-lv{font:700 15px/1 var(--f-display);letter-spacing:.06em;text-transform:uppercase;color:#1E2C5C}
+.w-clear{position:relative;font:700 46px/1.05 var(--f-display);letter-spacing:.01em;color:#FFC21E;margin:2px 0 0;
+  text-shadow:4px 0 #1E2C5C,-4px 0 #1E2C5C,0 4px #1E2C5C,0 -4px #1E2C5C,3px 3px #1E2C5C,-3px 3px #1E2C5C,3px -3px #1E2C5C,-3px -3px #1E2C5C,0 8px 0 #1E2C5C}
+.w-clear::after{content:attr(data-t);position:absolute;inset:0;background:linear-gradient(#FFF6A8 0%,#FFE14A 38%,#FFB300 75%,#F59A00 100%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none}
+.w-clear::before{content:'';position:absolute;left:10%;right:10%;top:16%;height:16%;border-radius:20px;background:rgba(255,255,255,.55);filter:blur(2px);z-index:1;pointer-events:none;mix-blend-mode:soft-light}
+.w-stars{position:relative;display:flex;align-items:flex-end;justify-content:center;gap:2px;height:112px;width:100%}
+.w-stars::before{content:'';position:absolute;left:50%;top:50%;width:260px;height:200px;transform:translate(-50%,-50%);border-radius:50%;
+  background:radial-gradient(closest-side,rgba(255,236,150,.95),rgba(255,226,120,.55) 45%,rgba(255,226,120,0)),repeating-conic-gradient(from 0deg,rgba(255,214,90,.28) 0 8deg,transparent 8deg 22deg);
+  -webkit-mask:radial-gradient(closest-side,#000 55%,transparent);mask:radial-gradient(closest-side,#000 55%,transparent);opacity:0;transition:opacity .4s .3s}
+#win.in .w-stars.lit::before{opacity:1}
+.w-star{position:relative;width:86px;height:auto;opacity:0;transform:scale(.2);filter:drop-shadow(0 4px 0 rgba(30,44,92,.25))}
+.w-star:nth-child(2){width:108px;margin-bottom:10px;z-index:1}
+.w-star.pop{animation:wstar .5s cubic-bezier(.2,1.9,.4,1) forwards}
 @keyframes wstar{0%{opacity:0;transform:scale(.2) rotate(-40deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
-.w-goal{font:500 11px/1.3 var(--f-mono);color:var(--ink-2);min-height:1.3em}
-.w-panel .w-stats{width:100%;justify-content:space-around}
-.w-panel .w-stats div{min-width:0;flex:1}
+.w-spark{position:absolute;top:22px;width:44px;height:50px;opacity:0;transition:opacity .3s 1.1s}
+.w-spark i{position:absolute;width:24px;height:9px;border-radius:9px;background:linear-gradient(#FFE45C,#FFB300);box-shadow:0 0 0 1.5px rgba(214,140,0,.35)}
+.w-spark i:nth-child(1){left:6px;top:4px;transform:rotate(40deg)}.w-spark i:nth-child(2){left:0;top:24px;transform:rotate(-10deg)}
+.w-spark.l{left:0}.w-spark.r{right:0;transform:scaleX(-1)}
+#win.in .w-stars.lit .w-spark{opacity:1}
+.w-goal{font:600 15px/1.25 var(--f-display);color:#1E2C5C;min-height:1.25em;text-align:center}
+.w-panel .w-stats{width:100%;justify-content:space-around;background:linear-gradient(#2A3C78,#1A2758);border:3px solid #13204A;border-radius:22px;padding:10px 4px 9px;box-shadow:inset 0 3px 0 rgba(255,255,255,.14),0 4px 0 rgba(19,32,74,.35)}
+.w-panel .w-stats div{min-width:0;flex:1;gap:3px}
+.w-panel .w-stats b{font:700 30px/1 var(--f-display);color:#FFD43B;text-shadow:0 2px 0 rgba(0,0,0,.25);display:flex;align-items:center;gap:4px}
+.w-panel .w-stats b img{width:28px;height:28px}
+.w-panel .w-stats span{font:700 12px/1 var(--f-display);letter-spacing:.06em;color:#B9CCFF}
+.w-panel .w-stats b span{font:inherit;color:inherit;letter-spacing:0}
+.w-panel .w-best{position:relative;background:none;padding:2px 46px;border-radius:0;font:700 30px/1.1 var(--f-display);letter-spacing:.04em;color:#FF3E8E;
+  text-shadow:2px 0 #fff,-2px 0 #fff,0 2px #fff,0 -2px #fff,0 4px 0 #A3155A,0 6px 8px rgba(163,21,90,.25);transform:rotate(-2deg)}
+.w-panel .w-best .w-spark{top:2px;width:40px;height:40px;opacity:1;transition:none}
+.w-panel .w-best .w-spark.l{left:-2px}.w-panel .w-best .w-spark.r{right:-2px}
+.w-panel .w-tap{font:700 22px/1 var(--f-display);color:#fff;background:linear-gradient(#34488C,#1E2C5C);border:3px solid #13204A;padding:14px 34px;border-radius:999px;box-shadow:inset 0 3px 0 rgba(255,255,255,.2),0 5px 0 #0F1A3E}
+.w-panel .w-prev{font:600 12px/1 var(--f-display);color:#4A5784}
 .w-best{font:700 15px/1 var(--f-display);background:var(--spring);color:#fff;padding:8px 14px;border-radius:999px;letter-spacing:.1em}
 .w-stats{display:flex;gap:4px;background:var(--ink);color:var(--paper);border-radius:14px;padding:10px 6px}
 .w-stats div{display:flex;flex-direction:column;align-items:center;min-width:66px;gap:4px}
@@ -142,11 +163,11 @@ textarea{width:100%;height:180px;font:400 11px/1.4 var(--f-mono);border:2px soli
   <div id="toast"></div>
   <div id="win" hidden><div class="w-card"><div class="w-panel">
     <div class="w-lv" id="wLv">Level 1</div>
-    <div class="w-clear">Level clear!</div>
-    <div class="w-stars" id="wStars" aria-label="Stars"><svg class="w-star" viewBox="0 0 100 100" aria-hidden="true"><path class="fill" d="M50 6l13 27 30 4-22 21 5 30-26-14-26 14 5-30L7 37l30-4z" stroke="#18233A" stroke-width="7" stroke-linejoin="round"/><path d="M36 30l8-15" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".6"/></svg><svg class="w-star" viewBox="0 0 100 100" aria-hidden="true"><path class="fill" d="M50 6l13 27 30 4-22 21 5 30-26-14-26 14 5-30L7 37l30-4z" stroke="#18233A" stroke-width="7" stroke-linejoin="round"/><path d="M36 30l8-15" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".6"/></svg><svg class="w-star" viewBox="0 0 100 100" aria-hidden="true"><path class="fill" d="M50 6l13 27 30 4-22 21 5 30-26-14-26 14 5-30L7 37l30-4z" stroke="#18233A" stroke-width="7" stroke-linejoin="round"/><path d="M36 30l8-15" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".6"/></svg></div>
+    <div class="w-clear" data-t="Level clear!">Level clear!</div>
+    <div class="w-stars" id="wStars" aria-label="Stars"><img class="w-star" src="art/ui/star-empty.png" alt=""><img class="w-star" src="art/ui/star-empty.png" alt=""><img class="w-star" src="art/ui/star-empty.png" alt=""><span class="w-spark l"><i></i><i></i></span><span class="w-spark r"><i></i><i></i></span></div>
     <div class="w-goal" id="wGoal"></div>
-    <div class="w-stats"><div><b id="wSlams">0</b><span>slams</span></div><div><b id="wCoins">0</b><span>coins</span></div><div><b id="wTime">0.00</b><span>seconds</span></div></div>
-    <div class="w-best" id="wBest" hidden>NEW BEST</div>
+    <div class="w-stats"><div><b id="wSlams">0</b><span>slams</span></div><div><b><img src="art/ui/coin.png" alt=""><span id="wCoins">0</span></b><span>coins</span></div><div><b id="wTime">0.00</b><span>seconds</span></div></div>
+    <div class="w-best" id="wBest" hidden><span class="w-spark l"><i></i><i></i></span><span class="w-spark r"><i></i><i></i></span><span id="wBestT">NEW BEST</span></div>
     <div class="w-prev" id="wPrev"></div>
     <div class="w-tap" id="wTap">Tap to go again</div>
   </div></div></div>
@@ -444,7 +465,7 @@ function showBanner(){
   $('wTap').textContent=world==='level'?`Tap for level ${(pack.cur+1)%NLEV+1}`:'Tap to go again';
   const el=$('win');el.hidden=false;el.classList.remove('in');void el.offsetWidth;el.classList.add('in');$('wTap').classList.remove('on');
   const b=$('wBest'),inLevel=world==='level';
-  b.hidden=!inLevel||!(win.best||win.prev==null);b.textContent=win.best?'NEW BEST':'FIRST CLEAR';
+  b.hidden=!inLevel||!(win.best||win.prev==null);$('wBestT').textContent=win.best?'NEW BEST!':'FIRST CLEAR!';
   $('wPrev').textContent=inLevel&&win.prev!=null?(win.best?`old best ${win.prev.toFixed(2)} s`:`best ${win.prev.toFixed(2)} s`):'';
   countUp($('wTime'),stats.time,2,700);
   const nCoins=inLevel?level.objs.filter(o=>o.type==='coin').length:0;
@@ -454,7 +475,8 @@ function showBanner(){
   // stars: fewer slams = more stars. par = the fewest slams the level bot found.
   const par=inLevel?levelPar(level):null,st=$('wStars'),stars=par==null?0:starsFor(stats.slams,par);
   st.hidden=par==null;
-  [...st.children].forEach((e,i)=>{e.classList.remove('pop','got');if(i<stars)e.classList.add('got');setTimeout(()=>{e.classList.add('pop');if(i<stars){tone(988*Math.pow(1.26,i),0,0.12,'square',0.07);tone(1976*Math.pow(1.26,i),0.05,0.18,'triangle',0.05)}},420+i*260)});
+  st.classList.toggle('lit',stars>0);
+  [...st.querySelectorAll('.w-star')].forEach((e,i)=>{e.classList.remove('pop');e.src='art/ui/'+(i<stars?'star':'star-empty')+'.png';setTimeout(()=>{e.classList.add('pop');if(i<stars){tone(988*Math.pow(1.26,i),0,0.12,'square',0.07);tone(1976*Math.pow(1.26,i),0.05,0.18,'triangle',0.05)}},420+i*260)});
   $('wGoal').textContent=par==null?'':stars>=3?`Perfect! ${par===0?'No slams needed':par+' slam'+(par===1?'':'s')+' is the best there is'}`:`3 stars: ${par===0?'no slams':par+' slam'+(par===1?'':'s')+' or fewer'} · 2 stars: ${par+starStep(par)} or fewer`;
   if(inLevel&&!SIM){const k=levelKey()+'_stars',old=store.get(k)||0;if(stars>old)store.set(k,stars)}
   if(win.best||(inLevel&&win.prev==null))setTimeout(()=>{tone(1319,0,0.12,'square',0.07);tone(1760,0.1,0.3,'square',0.07)},650);
