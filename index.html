@@ -780,7 +780,7 @@ function drawWorldBg(c,s){
   ctx.fillStyle=WA.haze;ctx.fillRect(0,Math.max(0,hy),W,H);
   // mid layer: distant towers and pillars, a hint of the world these platforms belong to
   const my=sy(fMid,horizon+120),span=150,u0=c.x*fMid-W/2/s,i0=Math.floor(u0/span)-1,i1=Math.floor((u0+W/s)/span)+1;
-  for(let i=i0;i<=i1;i++){const r=lh(i*13+5);if(r<0.35)continue;
+  for(let i=i0;i<=i1;i++){const r=lh(i*13+5);if(r<0.2)continue;
     const w=(50+lh(i*3+1)*70),h=(160+lh(i*5+2)*420),x=(i*span+lh(i)*40-u0)*s,y=my-h*s;
     ctx.fillStyle=r>0.8?WA.midD:WA.mid;ctx.fillRect(x,y,w*s,h*s+H);
     const roof=lh(i*17+3);ctx.beginPath();
@@ -790,7 +790,7 @@ function drawWorldBg(c,s){
     // a few lit windows
     ctx.fillStyle='rgba(246,231,198,0.55)';for(let k=0;k<4;k++){if(lh(i*41+k)<0.5)continue;ctx.fillRect(x+w*s*(0.25+0.5*lh(i*43+k))-3*s,y+(40+k*70)*s,6*s,12*s)}
   }
-  ctx.fillStyle=WA.mid;ctx.fillRect(0,Math.max(0,my),W,H);
+  if(my<H){const gm=ctx.createLinearGradient(0,my,0,my+H*0.6);gm.addColorStop(0,WA.mid);gm.addColorStop(1,WA.haze);ctx.fillStyle=gm;ctx.fillRect(0,Math.max(0,my),W,H)}
 }
 function drawBg(c,s){
   ctx.setTransform(DPR,0,0,DPR,0,0);
