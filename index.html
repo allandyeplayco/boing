@@ -224,11 +224,13 @@ const FEEL=[
  ['bounceSfx','Sound on normal bounces',0,1,1,'bool'],
  ['restartOnDeath','Dying restarts the level',0,1,1,'bool'],
  ['deathArc','Death: pop up and fall off screen',0,1,1,'bool'],
- ['phoneFrame','Phone-size view on a computer',0,1,1,'bool']
+ ['phoneFrame','Phone-size view on a computer',0,1,1,'bool'],
+ ['intro','Level start: show the flag first',0,0,0,'seg'],
+ ['goalArrow','Arrow to the flag when it is off screen',0,1,1,'bool']
 ];
-const DEF={gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,chainReset:1,lateFair:1,v2:1,v3:1};
+const DEF={gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,intro:'fly',goalArrow:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,chainReset:1,lateFair:1,v2:1,v3:1};
 const TURNS=[['every','Every slam'],['chain','Every slam after the 1st'],['second','Every 2nd slam'],['never','Never']];
-const SEGS={turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
+const SEGS={intro:[['fly','Fly from flag'],['zoom','Zoom out, then in'],['off','Off']],turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
 
 const MEM={};
 const CLOUD={kv:null,ready:false,booted:false,localDirty:false,timer:0,busy:false,again:false,ref:null};
@@ -301,9 +303,10 @@ let parts=[], pops=[], trail=[], springT=new Map();
 let win=null, flash=0, deadT=0, tries=1;
 let SIM=false; // true while the level bot simulates: no sound, buzz or saved times
 const BOT={watch:null,busy:false};
+let INTRO=null; // level-start camera move that shows the flag first (Feel: intro)
 
 const baseScale=()=>Math.min(W,H)/640;
-const scale=()=>baseScale()*(mode==='edit'?ecam.z:feel.zoom*(win?1+0.3*(1-Math.pow(1-Math.min(1,win.real/0.6),3)):1));
+const scale=()=>baseScale()*(mode==='edit'?ecam.z:feel.zoom*(INTRO?INTRO.z:1)*(win?1+0.3*(1-Math.pow(1-Math.min(1,win.real/0.6),3)):1));
 const cam=()=>mode==='edit'?ecam:pcam;
 function s2w(sx,sy){const c=cam(),s=scale();return{x:(sx-W/2)/s+c.x,y:(sy-H/2)/s+c.y}}
 const snap=v=>snapOn?Math.round(v/20)*20:Math.round(v);
@@ -345,6 +348,22 @@ function startPlay(){
   stats={coins:0,falls:0,best:0,slams:0,time:0};
   parts=[];pops=[];trail=[];springT.clear();
   win=null;flash=0;deadT=0;const wb=document.getElementById('win');if(wb){wb.hidden=true;wb.classList.remove('in')}
+  INTRO=null;if(!SIM&&!BOT.busy&&world==='level'&&tries===1&&feel.intro!=='off')introStart();
+}
+// ---------- level intro: show the flag, then bring the camera to Boing ----------
+function goalObj(){return world==='level'?level.objs.find(o=>o.type==='goal'):null}
+function introStart(){
+  const g=goalObj();if(!g)return;const end={x:pcam.x,y:pcam.y};
+  if(feel.intro==='zoom'){let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(const o of level.objs.concat([{x:p.x,y:p.y,w:0}])){x0=Math.min(x0,o.x-40);x1=Math.max(x1,o.x+(o.w||0)+40);y0=Math.min(y0,o.y-80);y1=Math.max(y1,o.y+60)}
+    const z=Math.min(1,Math.min(W/(x1-x0),H*0.8/(y1-y0))/(baseScale()*feel.zoom));
+    INTRO={t:0,hold:0.9,move:1.0,z,z0:z,from:{x:(x0+x1)/2,y:(y0+y1)/2},end}}
+  else INTRO={t:0,hold:0.7,move:1.3,z:1,z0:1,from:{x:g.x,y:g.y-40},end};
+  pcam.x=INTRO.from.x;pcam.y=INTRO.from.y;
+}
+function introTick(dt){
+  const I=INTRO;I.t+=dt;const k=Math.max(0,Math.min(1,(I.t-I.hold)/I.move)),e=k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
+  pcam.x=I.from.x+(I.end.x-I.from.x)*e;pcam.y=I.from.y+(I.end.y-I.from.y)*e;I.z=I.z0+(1-I.z0)*e;
+  if(k>=1)INTRO=null;
 }
 function slamBounceV(combo){return feel.bounce*feel.slamMult*Math.pow(feel.comboStep,Math.min(combo,feel.comboMax)-1)}
 function pop(x,y,text,color,size){pops.push({x,y,text,color:color||C.ink,life:1,size:size||22})}
@@ -474,6 +493,7 @@ function tap(){
   if(mode!=='play'||paused||(BOT.busy&&!SIM)) return;
   if(BOT.watch&&!BOT.watch.tapping&&!win) return;
   if(!SIM){hideHint();audio()}
+  if(INTRO){INTRO=null;pcam.x=p.x+p.dir*feel.look;pcam.y=p.y-40;return}
   if(win){if(win.ready){tries=1;if(world==='level'){setLevel(pack.cur+1);toast(`Level ${pack.cur+1}: ${level.name}`)}else startPlay()}return}
   if(deadT>0) return;
   if(p.slam) return;
@@ -687,6 +707,21 @@ function drawBg(c,s){
     ctx.fillStyle='rgba(24,35,58,0.4)';ctx.fillText(`${m} m`,Math.max(12,0)+6,sy-3);
   }
 }
+// A small flag badge pinned to the screen edge, pointing at the flag while it is off screen.
+function drawGoalArrow(c,s){
+  const g=goalObj();if(!g)return;ctx.setTransform(DPR,0,0,DPR,0,0);
+  const gx=(g.x-c.x)*s+W/2,gy=(g.y-c.y)*s+H/2,m=34,top=110,bot=40;
+  if(gx>-10&&gx<W+10&&gy>top-40&&gy<H+10)return;
+  const cx=W/2,cy=(top+H-bot)/2,dx=gx-cx,dy=gy-cy;
+  const k=Math.min((W/2-m)/Math.abs(dx||1e-6),((H-top-bot)/2-m)/Math.abs(dy||1e-6));
+  const x=cx+dx*k,y=cy+dy*k,a=Math.atan2(dy,dx),pulse=1+0.06*Math.sin(performance.now()/180);
+  ctx.save();ctx.translate(x,y);ctx.scale(pulse,pulse);
+  ctx.save();ctx.rotate(a);ctx.fillStyle=C.ink;ctx.beginPath();ctx.moveTo(30,0);ctx.lineTo(16,-10);ctx.lineTo(16,10);ctx.closePath();ctx.fill();ctx.restore();
+  ctx.fillStyle=C.ink;ctx.beginPath();ctx.arc(0,0,19,0,7);ctx.fill();
+  ctx.strokeStyle=C.paper;ctx.lineWidth=2.5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-5,10);ctx.lineTo(-5,-11);ctx.stroke();
+  ctx.fillStyle=C.goal;ctx.beginPath();ctx.moveTo(-4,-11);ctx.lineTo(10,-6);ctx.lineTo(-4,-1);ctx.fill();
+  ctx.restore();
+}
 function render(){
   const c=cam(),s=scale();
   drawBg(c,s);
@@ -724,6 +759,7 @@ function render(){
   ctx.textAlign='center';ctx.textBaseline='middle';
   for(const q of pops){ctx.globalAlpha=Math.min(1,q.life*1.5);const k=1+0.7*Math.pow(Math.max(0,(q.life-0.82)/0.18),2);ctx.save();ctx.translate(q.x,q.y);ctx.scale(k,k);if(q.size>30)ctx.rotate(-0.06);ctx.font=`700 ${q.size}px Fredoka,sans-serif`;ctx.lineJoin='round';ctx.lineWidth=q.size>30?9:5;ctx.strokeStyle=q.size>30?C.ink:C.paper;ctx.strokeText(q.text,0,0);ctx.fillStyle=q.size>30?C.ball:q.color;if(q.size>30){ctx.fillStyle=q.color===C.spring?C.ball:'#FFFFFF'}ctx.fillText(q.text,0,0);ctx.restore()}
   ctx.globalAlpha=1;ctx.textAlign='start';
+  if(mode==='play'&&feel.goalArrow&&!win)drawGoalArrow(c,s);
   if(flash>0&&mode==='play'){ctx.setTransform(DPR,0,0,DPR,0,0);ctx.fillStyle=`rgba(${flashRGB},${(flash*0.85).toFixed(3)})`;ctx.fillRect(0,0,W,H)}
 }
 function bounds(o){if(TYPES[o.type].pt)return o.type==='goal'?{x:o.x-10,y:o.y-44,w:50,h:80}:{x:o.x-15,y:o.y-15,w:30,h:30};return{x:o.x,y:o.y-(o.type==='spike'?10:o.type==='spring'?8:0),w:o.w,h:PH+(o.type==='spike'?10:o.type==='spring'?8:0)}}
@@ -737,7 +773,8 @@ phoneView();
 function frame(now){phoneView();
   if(BOT.busy){last=now;requestAnimationFrame(frame);return}
   let dt=Math.min(0.05,(now-last)/1000);last=now;
-  if(mode==='play'&&!paused){let ts=1;if(win){win.real+=dt;const r=win.real;ts=r<0.1?0.04:r<0.9?0.3+0.7*(r-0.1)/0.8:1}acc+=dt*ts;while(acc>=1/120){step(1/120);acc-=1/120}updFx(dt*ts)}
+  if(mode==='play'&&!paused&&INTRO){introTick(dt);updFx(dt)}
+  else if(mode==='play'&&!paused){let ts=1;if(win){win.real+=dt;const r=win.real;ts=r<0.1?0.04:r<0.9?0.3+0.7*(r-0.1)/0.8:1}acc+=dt*ts;while(acc>=1/120){step(1/120);acc-=1/120}updFx(dt*ts)}
   else if(mode==='edit'){simT+=dt}
   flash=Math.max(0,flash-dt*2.2);
   render();
@@ -949,7 +986,7 @@ function botBorrow(lv){
   return keep;
 }
 function botGive(k){level=k.level;world=k.world;mode=k.mode;paused=k.paused;parts=k.parts;pops=k.pops;trail=k.trail;shakeAmt=k.shakeAmt;flash=k.flash;pcam=k.pcam;startY=k.startY;tries=k.tries;SIM=k.sim;springT.clear();if(k.s)botLoad(k.s)}
-function botStart(){startPlay();botT=0;parts=[];pops=[];trail=[]}
+function botStart(){startPlay();INTRO=null;botT=0;parts=[];pops=[];trail=[]}
 // Search for a winning tap plan. A plan is a list of steps: after each landing, either
 // {k:n} = tap n ticks later, or {k:-1} = no tap until the next landing.
 // Yields now and then so the page stays responsive. Result in the returned object.
@@ -1111,7 +1148,7 @@ async function botWatch(i){
   world='level';$('bWorld').textContent='Mode: Level';
   if(pack.cur!==i)setLevel(i);
   setMode('play');hideHint();
-  BOT.watch={ticks:r.ticks.slice(),i:0,n:0};
+  INTRO=null;pcam={x:p.x+p.dir*feel.look,y:p.y-40};BOT.watch={ticks:r.ticks.slice(),i:0,n:0};
   toast('Watching the bot. Tap Restart to play yourself.');
 }
 $('bBot').onclick=()=>{$('botSheet').hidden=false;paused=true;botRender()};
