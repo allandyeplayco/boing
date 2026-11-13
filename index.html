@@ -195,6 +195,7 @@ const TYPES={
 };
 const FEEL=[
  ['art','World art',0,0,0,'seg'],
+ ['anchor','Platforms with a base (auto)',0,0,0,'seg'],
  ['bgDepth','Background depth (parallax)',0,2,0.05,'×'],
  ['skin','Character',0,0,0,'seg'],
  ['boingSize','Character size',0.8,2,0.05,'×'],
@@ -231,9 +232,9 @@ const FEEL=[
  ['intro','Level start: show the flag first',0,0,0,'seg'],
  ['goalArrow','Arrow to the flag when it is off screen',0,1,1,'bool']
 ];
-const DEF={art:'greybox',bgDepth:1,gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,intro:'fly',goalArrow:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,chainReset:1,lateFair:1,v2:1,v3:1};
+const DEF={art:'greybox',anchor:'wide',bgDepth:1,gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,intro:'fly',goalArrow:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,chainReset:1,lateFair:1,v2:1,v3:1};
 const TURNS=[['every','Every slam'],['chain','Every slam after the 1st'],['second','Every 2nd slam'],['never','Never']];
-const SEGS={art:[['greybox','Greybox world'],['plain','Plain (old)']],intro:[['fly','Fly from flag'],['zoom','Zoom out, then in'],['off','Off']],turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
+const SEGS={art:[['greybox','Greybox world'],['plain','Plain (old)']],anchor:[['wide','Wide ones'],['all','All'],['none','None']],intro:[['fly','Fly from flag'],['zoom','Zoom out, then in'],['off','Off']],turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
 
 const MEM={};
 const CLOUD={kv:null,ready:false,booted:false,localDirty:false,timer:0,busy:false,again:false,ref:null};
@@ -700,56 +701,51 @@ function drawBall(x,y,dir,opts){
 // ---------- world art (greybox) ----------
 // Temp art to work out the world's structure before real art. Feel "World art" switches between this and the plain look.
 // Every landable top gets the same cream cap (drawCap). Under it, each bar piece is either:
-//  'base' = anchored: a darker stone column behind it, going down and fading out (implies solid ground far below),
-//  'hang' = hanging: chains up to the piece above it, or off the top of the screen,
-//  'float' = nothing, 'none' = sits on something else (springs and spikes on a platform).
-// 'auto' picks for you: breakables hang; a platform with anything landable under it hangs (keeps the fall space clear); otherwise it gets a base.
+//  'base' = anchored: a stone column going down and fading out, like old-school platformers. Bases are layered by height:
+//           a lower platform's base is in front, a higher platform's base sits behind it (and a little hazier).
+//  'float' = floats, with a small underside; 'none' = sits on something else (springs and spikes on a platform).
+// 'auto' follows Feel "Platforms with a base": wide platforms (300+ units), all platforms, or none. Breakables always float.
 // Override per piece in the editor with the Look button (saved in the level code as "look").
 const WA={sky0:'#6FA9D6',sky1:'#BFDCEB',sky2:'#F6E7C6',haze:'#D9E3E6',far:'#B6CDDD',mid:'#A3BBCF',midD:'#97B0C6',cloud:'rgba(255,255,255,0.75)',
-  base:'#6A7189',baseL:'#5A6079',baseTop:'#454B62',chain:'#56637E',cap:'#FFE6A0',capD:'#E0B85C'};
-const LOOKS=[['auto','Auto'],['base','Ground'],['hang','Hanging'],['float','Floating']];
+  base:[106,113,137],baseL:'rgba(60,66,90,0.45)',edge:'#3E445C',under:'#4A5068',cap:'#FFE6A0',capD:'#E0B85C'};
+const LOOKS=[['auto','Auto'],['base','Ground'],['float','Floating']];
 const LANDABLE={plat:1,brk:1,brk2:1,spring:1,spike:1};
 const artOn=()=>feel.art!=='plain';
 function overlapX(a,b,m){return a.x<b.x+b.w-m&&a.x+a.w>b.x+m}
 function lookOf(o,objs){
   if(!LANDABLE[o.type])return'none';
   if(o.type==='spring'||o.type==='spike'){for(const q of objs)if(q!==o&&(q.type==='plat'||q.type==='brk'||q.type==='brk2')&&q.y>=o.y-2&&q.y<=o.y+44&&overlapX(o,q,0))return'none'}
-  if(o.look&&o.look!=='auto')return o.look;
-  if(o.type==='brk'||o.type==='brk2')return'hang';
-  if(o.type==='spring')return'hang';
-  for(const q of objs)if(q!==o&&LANDABLE[q.type]&&q.y>o.y+PH&&q.y<o.y+1600&&overlapX(o,q,8))return'hang';
-  return'base';
+  if(o.look==='base'||o.look==='float')return o.look;
+  if(o.type!=='plat')return'float';
+  return feel.anchor==='all'||(feel.anchor==='wide'&&o.w>=300)?'base':'float';
 }
 function gone(o){return rt&&mode==='play'&&(rt.broken.has(o.id)||rt.got.has(o.id))}
 // structures: drawn first, behind every piece and behind Boing
 function drawStructures(objs,c,s){
-  const hw=W/2/s,hh=H/2/s,top=c.y-hh-40,bot=c.y+hh+40;
+  const hw=W/2/s,hh=H/2/s,bot=c.y+hh+40;
   let low=-1e9;if(world==='level')for(const o of objs)low=Math.max(low,o.y);
   const floor=world==='level'?low+520:bot+400;
+  const bases=[];
   for(const o of objs){if(gone(o)||!LANDABLE[o.type])continue;const lk=lookOf(o,objs);
-    if(lk==='base'){
-      const x0=o.x+10,x1=o.x+o.w-10,y0=o.y+PH-4,y1=Math.min(floor,bot);if(y1<=y0||o.x>c.x+hw+40||o.x+o.w<c.x-hw-40)continue;
-      const g=ctx.createLinearGradient(0,floor-480,0,floor);g.addColorStop(0,WA.base);g.addColorStop(1,'rgba(106,113,137,0)');
-      ctx.fillStyle=g;ctx.fillRect(x0,y0,x1-x0,y1-y0);
-      // stone courses
-      ctx.save();ctx.beginPath();ctx.rect(x0,y0,x1-x0,y1-y0);ctx.clip();
-      ctx.globalAlpha=0.55;ctx.strokeStyle=WA.baseL;ctx.lineWidth=3;ctx.beginPath();
-      for(let y=y0+34,r=0;y<y1;y+=34,r++){ctx.moveTo(x0,y);ctx.lineTo(x1,y);for(let x=x0+(r%2?30:62);x<x1-10;x+=64){ctx.moveTo(x,y);ctx.lineTo(x,y-34)}}
-      ctx.stroke();ctx.globalAlpha=1;
-      // shadow right under the cap, so the cap reads as the thing you stand on
-      ctx.fillStyle=WA.baseTop;ctx.globalAlpha=0.6;ctx.fillRect(x0,y0,x1-x0,14);ctx.globalAlpha=1;ctx.restore();
-    } else if(lk==='hang'){
-      const xs=o.w<90?[o.x+o.w/2]:[o.x+16,o.x+o.w-16];
-      for(const x of xs){
-        // stop at the first piece above this chain, otherwise run off the top of the screen
-        let y0=top;for(const q of objs)if(q!==o&&LANDABLE[q.type]&&q.type!=='spike'&&q.y<o.y-30&&q.x<x&&q.x+q.w>x&&!gone(q))y0=Math.max(y0,q.y+PH);
-        if(o.y<top||y0>o.y)continue;
-        ctx.strokeStyle=WA.chain;ctx.lineWidth=3;
-        for(let y=o.y,i=0;y>y0;y-=13,i++){ctx.beginPath();if(i%2)ctx.ellipse(x,y-6.5,4,7.5,0,0,7);else{ctx.moveTo(x,y);ctx.lineTo(x,y-13)}ctx.stroke()}
-        ctx.fillStyle=WA.chain;rr(x-7,o.y-3,14,7,3);ctx.fill();
-        if(y0>top){rr(x-9,y0-2,18,7,3);ctx.fill()}
-      }
-    }
+    if(lk==='base')bases.push(o);
+    else if(lk==='float'&&o.type!=='spike'){ // small underside so a floating piece reads as a floating block, not a floor
+      ctx.fillStyle=WA.under;ctx.beginPath();ctx.moveTo(o.x+6,o.y+PH-3);ctx.lineTo(o.x+o.w-6,o.y+PH-3);ctx.lineTo(o.x+o.w-22,o.y+PH+12);ctx.lineTo(o.x+22,o.y+PH+12);ctx.closePath();ctx.fill()}
+  }
+  // highest first, so each lower base is drawn in front of the ones above it
+  bases.sort((a,b)=>a.y-b.y);
+  const lowB=bases.length?bases[bases.length-1].y:0;
+  for(const o of bases){
+    const x0=o.x+10,x1=o.x+o.w-10,y0=o.y+PH-4,y1=Math.min(floor,bot);if(y1<=y0||o.x>c.x+hw+40||o.x+o.w<c.x-hw-40)continue;
+    const k=Math.min(0.45,(lowB-o.y)/1400),hz=[217,227,230],col=WA.base.map((v,i)=>Math.round(v+(hz[i]-v)*k)).join(',');
+    const g=ctx.createLinearGradient(0,floor-480,0,floor);g.addColorStop(0,`rgb(${col})`);g.addColorStop(1,`rgba(${col},0)`);
+    ctx.save();ctx.beginPath();ctx.rect(x0-4,y0,x1-x0+8,y1-y0);ctx.clip();
+    // dark outline down both sides, so overlapping bases separate
+    const ge=ctx.createLinearGradient(0,floor-480,0,floor);ge.addColorStop(0,WA.edge);ge.addColorStop(1,'rgba(62,68,92,0)');ctx.fillStyle=ge;ctx.globalAlpha=1-k;ctx.fillRect(x0-4,y0,x1-x0+8,y1-y0);ctx.globalAlpha=1;
+    ctx.fillStyle=g;ctx.fillRect(x0,y0,x1-x0,y1-y0);
+    ctx.strokeStyle=WA.baseL;ctx.lineWidth=3;ctx.globalAlpha=(1-k)*0.8;ctx.beginPath(); // stone courses
+    for(let y=y0+34,r=0;y<y1;y+=34,r++){ctx.moveTo(x0,y);ctx.lineTo(x1,y);for(let x=x0+(r%2?30:62);x<x1-10;x+=64){ctx.moveTo(x,y);ctx.lineTo(x,y-34)}}
+    ctx.stroke();
+    ctx.fillStyle='rgba(30,34,50,0.35)';ctx.fillRect(x0,y0,x1-x0,14);ctx.globalAlpha=1;ctx.restore(); // shadow under the cap
   }
 }
 // one strong cap style shared by every landable top
