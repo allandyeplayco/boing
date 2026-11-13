@@ -716,9 +716,10 @@ function drawGoalArrow(c,s){
   const k=Math.min((W/2-m)/Math.abs(dx||1e-6),((H-top-bot)/2-m)/Math.abs(dy||1e-6));
   const x=cx+dx*k,y=cy+dy*k,a=Math.atan2(dy,dx),pulse=1+0.06*Math.sin(performance.now()/180);
   ctx.save();ctx.translate(x,y);ctx.scale(pulse,pulse);
-  ctx.save();ctx.rotate(a);ctx.fillStyle=C.ink;ctx.beginPath();ctx.moveTo(30,0);ctx.lineTo(16,-10);ctx.lineTo(16,10);ctx.closePath();ctx.fill();ctx.restore();
-  ctx.fillStyle=C.ink;ctx.beginPath();ctx.arc(0,0,19,0,7);ctx.fill();
-  ctx.strokeStyle=C.paper;ctx.lineWidth=2.5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-5,10);ctx.lineTo(-5,-11);ctx.stroke();
+  ctx.lineJoin='round';ctx.strokeStyle=C.ink;ctx.lineWidth=3.5;
+  ctx.save();ctx.rotate(a);ctx.fillStyle=C.ball;ctx.beginPath();ctx.moveTo(34,0);ctx.lineTo(17,-12);ctx.lineTo(17,12);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+  ctx.fillStyle=C.ball;ctx.beginPath();ctx.arc(0,0,20,0,7);ctx.fill();ctx.stroke();
+  ctx.strokeStyle=C.ink;ctx.lineWidth=2.5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-5,10);ctx.lineTo(-5,-11);ctx.stroke();
   ctx.fillStyle=C.goal;ctx.beginPath();ctx.moveTo(-4,-11);ctx.lineTo(10,-6);ctx.lineTo(-4,-1);ctx.fill();
   ctx.restore();
 }
