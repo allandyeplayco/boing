@@ -138,6 +138,7 @@ textarea{width:100%;height:180px;font:400 11px/1.4 var(--f-mono);border:2px soli
       <span class="lbl" id="selName">Platform</span>
       <button id="wMinus" aria-label="Narrower">− width</button>
       <button id="wPlus" aria-label="Wider">+ width</button>
+      <button id="bLook" aria-label="What holds this piece up">Look</button>
       <button id="bDup">Duplicate</button>
       <button id="bDel" class="warn">Delete</button>
     </div>
@@ -193,6 +194,8 @@ const TYPES={
   goal:{name:'Goal',pt:true}
 };
 const FEEL=[
+ ['art','World art',0,0,0,'seg'],
+ ['bgDepth','Background depth (parallax)',0,2,0.05,'×'],
  ['skin','Character',0,0,0,'seg'],
  ['boingSize','Character size',0.8,2,0.05,'×'],
  ['poseBlend','Pose blend time (0 = instant swap)',0,0.2,0.005,'s'],
@@ -228,9 +231,9 @@ const FEEL=[
  ['intro','Level start: show the flag first',0,0,0,'seg'],
  ['goalArrow','Arrow to the flag when it is off screen',0,1,1,'bool']
 ];
-const DEF={gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,intro:'fly',goalArrow:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,chainReset:1,lateFair:1,v2:1,v3:1};
+const DEF={art:'greybox',bgDepth:1,gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,intro:'fly',goalArrow:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,chainReset:1,lateFair:1,v2:1,v3:1};
 const TURNS=[['every','Every slam'],['chain','Every slam after the 1st'],['second','Every 2nd slam'],['never','Never']];
-const SEGS={intro:[['fly','Fly from flag'],['zoom','Zoom out, then in'],['off','Off']],turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
+const SEGS={art:[['greybox','Greybox world'],['plain','Plain (old)']],intro:[['fly','Fly from flag'],['zoom','Zoom out, then in'],['off','Off']],turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
 
 const MEM={};
 const CLOUD={kv:null,ready:false,booted:false,localDirty:false,timer:0,busy:false,again:false,ref:null};
@@ -547,7 +550,7 @@ function drawObj(o,t,ghost){
   switch(o.type){
     case 'plat':
       ctx.fillStyle=C.ink;rr(o.x,o.y,o.w,PH,7);ctx.fill();
-      ctx.fillStyle=C.ink3;rr(o.x+4,o.y+3,o.w-8,4,2);ctx.fill();break;
+      if(artOn())drawCap(o);else{ctx.fillStyle=C.ink3;rr(o.x+4,o.y+3,o.w-8,4,2);ctx.fill()}break;
     case 'brk2':
     case 'brk':{
       const dmg=(mode==='play'&&rt&&rt.hits)?(rt.hits.get(o.id)||0):0;
@@ -570,6 +573,7 @@ function drawObj(o,t,ghost){
         ctx.fillStyle=C.ink;for(const x of [o.x+9,o.x+o.w-9]){ctx.beginPath();ctx.arc(x,o.y+PH/2,3,0,7);ctx.fill()}
         ctx.fillRect(o.x+o.w/2-2,o.y+1,4,PH-2);
       }
+      if(artOn())drawCap(o);
       ctx.restore();break;}
     case 'spring':{
       const since=springT.has(o.id)?(t-springT.get(o.id)):9;
@@ -693,10 +697,107 @@ function drawBall(x,y,dir,opts){
     ctx.fillStyle=C.ink;ctx.beginPath();ctx.arc(ex+dir*2.5,ey+Math.max(-2.5,Math.min(2.5,(o.vy||0)/500)),3.2,0,7);ctx.fill()}
   ctx.restore();
 }
+// ---------- world art (greybox) ----------
+// Temp art to work out the world's structure before real art. Feel "World art" switches between this and the plain look.
+// Every landable top gets the same cream cap (drawCap). Under it, each bar piece is either:
+//  'base' = anchored: a darker stone column behind it, going down and fading out (implies solid ground far below),
+//  'hang' = hanging: chains up to the piece above it, or off the top of the screen,
+//  'float' = nothing, 'none' = sits on something else (springs and spikes on a platform).
+// 'auto' picks for you: breakables hang; a platform with anything landable under it hangs (keeps the fall space clear); otherwise it gets a base.
+// Override per piece in the editor with the Look button (saved in the level code as "look").
+const WA={sky0:'#6FA9D6',sky1:'#BFDCEB',sky2:'#F6E7C6',haze:'#D9E3E6',far:'#B6CDDD',mid:'#A3BBCF',midD:'#97B0C6',cloud:'rgba(255,255,255,0.75)',
+  base:'#6A7189',baseL:'#5A6079',baseTop:'#454B62',chain:'#56637E',cap:'#FFE6A0',capD:'#E0B85C'};
+const LOOKS=[['auto','Auto'],['base','Ground'],['hang','Hanging'],['float','Floating']];
+const LANDABLE={plat:1,brk:1,brk2:1,spring:1,spike:1};
+const artOn=()=>feel.art!=='plain';
+function overlapX(a,b,m){return a.x<b.x+b.w-m&&a.x+a.w>b.x+m}
+function lookOf(o,objs){
+  if(!LANDABLE[o.type])return'none';
+  if(o.type==='spring'||o.type==='spike'){for(const q of objs)if(q!==o&&(q.type==='plat'||q.type==='brk'||q.type==='brk2')&&q.y>=o.y-2&&q.y<=o.y+44&&overlapX(o,q,0))return'none'}
+  if(o.look&&o.look!=='auto')return o.look;
+  if(o.type==='brk'||o.type==='brk2')return'hang';
+  if(o.type==='spring')return'hang';
+  for(const q of objs)if(q!==o&&LANDABLE[q.type]&&q.y>o.y+PH&&q.y<o.y+1600&&overlapX(o,q,8))return'hang';
+  return'base';
+}
+function gone(o){return rt&&mode==='play'&&(rt.broken.has(o.id)||rt.got.has(o.id))}
+// structures: drawn first, behind every piece and behind Boing
+function drawStructures(objs,c,s){
+  const hw=W/2/s,hh=H/2/s,top=c.y-hh-40,bot=c.y+hh+40;
+  let low=-1e9;if(world==='level')for(const o of objs)low=Math.max(low,o.y);
+  const floor=world==='level'?low+520:bot+400;
+  for(const o of objs){if(gone(o)||!LANDABLE[o.type])continue;const lk=lookOf(o,objs);
+    if(lk==='base'){
+      const x0=o.x+10,x1=o.x+o.w-10,y0=o.y+PH-4,y1=Math.min(floor,bot);if(y1<=y0||o.x>c.x+hw+40||o.x+o.w<c.x-hw-40)continue;
+      const g=ctx.createLinearGradient(0,floor-480,0,floor);g.addColorStop(0,WA.base);g.addColorStop(1,'rgba(106,113,137,0)');
+      ctx.fillStyle=g;ctx.fillRect(x0,y0,x1-x0,y1-y0);
+      // stone courses
+      ctx.save();ctx.beginPath();ctx.rect(x0,y0,x1-x0,y1-y0);ctx.clip();
+      ctx.globalAlpha=0.55;ctx.strokeStyle=WA.baseL;ctx.lineWidth=3;ctx.beginPath();
+      for(let y=y0+34,r=0;y<y1;y+=34,r++){ctx.moveTo(x0,y);ctx.lineTo(x1,y);for(let x=x0+(r%2?30:62);x<x1-10;x+=64){ctx.moveTo(x,y);ctx.lineTo(x,y-34)}}
+      ctx.stroke();ctx.globalAlpha=1;
+      // shadow right under the cap, so the cap reads as the thing you stand on
+      ctx.fillStyle=WA.baseTop;ctx.globalAlpha=0.6;ctx.fillRect(x0,y0,x1-x0,14);ctx.globalAlpha=1;ctx.restore();
+    } else if(lk==='hang'){
+      const xs=o.w<90?[o.x+o.w/2]:[o.x+16,o.x+o.w-16];
+      for(const x of xs){
+        // stop at the first piece above this chain, otherwise run off the top of the screen
+        let y0=top;for(const q of objs)if(q!==o&&LANDABLE[q.type]&&q.type!=='spike'&&q.y<o.y-30&&q.x<x&&q.x+q.w>x&&!gone(q))y0=Math.max(y0,q.y+PH);
+        if(o.y<top||y0>o.y)continue;
+        ctx.strokeStyle=WA.chain;ctx.lineWidth=3;
+        for(let y=o.y,i=0;y>y0;y-=13,i++){ctx.beginPath();if(i%2)ctx.ellipse(x,y-6.5,4,7.5,0,0,7);else{ctx.moveTo(x,y);ctx.lineTo(x,y-13)}ctx.stroke()}
+        ctx.fillStyle=WA.chain;rr(x-7,o.y-3,14,7,3);ctx.fill();
+        if(y0>top){rr(x-9,y0-2,18,7,3);ctx.fill()}
+      }
+    }
+  }
+}
+// one strong cap style shared by every landable top
+function drawCap(o){ctx.fillStyle=WA.cap;rr(o.x-2,o.y-2,o.w+4,8,4);ctx.fill();ctx.strokeStyle=C.ink;ctx.lineWidth=2.5;ctx.stroke();
+  ctx.fillStyle=WA.capD;ctx.fillRect(o.x+4,o.y+3.5,o.w-8,1.5)}
+// background: sky, far hills, mid towers, clouds. Each layer moves slower than the world (parallax, Feel "Background depth").
+function lh(i){let a=Math.imul(i^0x9e3779b9,0x85ebca6b);a^=a>>>13;a=Math.imul(a,0xc2b2ae35);a^=a>>>16;return(a>>>0)/4294967296}
+function drawWorldBg(c,s){
+  const d=feel.bgDepth;
+  let low=0;if(world==='level'){low=-1e9;for(const o of level.objs)low=Math.max(low,o.y)}else low=300;
+  const horizon=low+260; // world y of the far horizon (a little below the lowest piece)
+  const sy=(f,wy)=>H/2+(wy-c.y)*s*f;
+  const fFar=Math.min(1,0.1*d),fMid=Math.min(1,0.25*d),fCl=Math.min(1,0.45*d);
+  const hy=sy(fFar,horizon);
+  const g=ctx.createLinearGradient(0,hy-H*1.6,0,hy);g.addColorStop(0,WA.sky0);g.addColorStop(0.6,WA.sky1);g.addColorStop(1,WA.sky2);
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  // clouds (behind the hills too, they are far away; they drift slowly)
+  const drift=performance.now()/1000*6;
+  for(let row=-8;row<=8;row++){const wy=horizon-260-row*420,y=sy(fCl,wy);if(y<-120||y>H+120)continue;
+    const span=520,u0=c.x*fCl+drift-W/2/s,i0=Math.floor(u0/span)-1,i1=Math.floor((u0+W/s)/span)+1;
+    for(let i=i0;i<=i1;i++){const r=lh(i*31+row*977);if(r<0.45)continue;const ux=i*span+lh(i*7+row)*span*0.6,x=(ux-u0)*s;
+      const k=(0.7+r*0.6)*s;ctx.fillStyle=WA.cloud;ctx.beginPath();
+      for(const[dx,dy,rr0]of[[-50,6,26],[-18,-8,36],[22,-2,30],[52,8,22],[0,10,30]]){ctx.moveTo(x+dx*k+rr0*k,y+dy*k);ctx.arc(x+dx*k,y+dy*k,rr0*k,0,7)}ctx.fill()}}
+  // far hills
+  ctx.fillStyle=WA.far;ctx.beginPath();ctx.moveTo(0,H+2);
+  for(let x=0;x<=W+8;x+=8){const u=c.x*fFar+(x-W/2)/s;const h=150+70*Math.sin(u/260)+45*Math.sin(u/113+1.3)+20*Math.sin(u/41+0.4);ctx.lineTo(x,Math.min(H+2,hy-h*s))}
+  ctx.lineTo(W,H+2);ctx.closePath();ctx.fill();
+  ctx.fillStyle=WA.haze;ctx.fillRect(0,Math.max(0,hy),W,H);
+  // mid layer: distant towers and pillars, a hint of the world these platforms belong to
+  const my=sy(fMid,horizon+120),span=150,u0=c.x*fMid-W/2/s,i0=Math.floor(u0/span)-1,i1=Math.floor((u0+W/s)/span)+1;
+  for(let i=i0;i<=i1;i++){const r=lh(i*13+5);if(r<0.35)continue;
+    const w=(50+lh(i*3+1)*70),h=(160+lh(i*5+2)*420),x=(i*span+lh(i)*40-u0)*s,y=my-h*s;
+    ctx.fillStyle=r>0.8?WA.midD:WA.mid;ctx.fillRect(x,y,w*s,h*s+H);
+    const roof=lh(i*17+3);ctx.beginPath();
+    if(roof<0.4){ctx.moveTo(x-6*s,y);ctx.lineTo(x+w*s/2,y-w*0.7*s);ctx.lineTo(x+w*s+6*s,y)}
+    else if(roof<0.7){ctx.rect(x-8*s,y-14*s,w*s+16*s,14*s)}
+    ctx.fill();
+    // a few lit windows
+    ctx.fillStyle='rgba(246,231,198,0.55)';for(let k=0;k<4;k++){if(lh(i*41+k)<0.5)continue;ctx.fillRect(x+w*s*(0.25+0.5*lh(i*43+k))-3*s,y+(40+k*70)*s,6*s,12*s)}
+  }
+  ctx.fillStyle=WA.mid;ctx.fillRect(0,Math.max(0,my),W,H);
+}
 function drawBg(c,s){
-  ctx.setTransform(DPR,0,0,DPR,0,0);ctx.fillStyle=C.sky;ctx.fillRect(0,0,W,H);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  if(artOn())drawWorldBg(c,s);else{ctx.fillStyle=C.sky;ctx.fillRect(0,0,W,H);
   const g=44,ox=((-c.x*s*0.5)%g+g)%g,oy=((-c.y*s*0.5)%g+g)%g;ctx.fillStyle=C.dot;
   for(let x=ox;x<W;x+=g)for(let y=oy;y<H;y+=g){ctx.fillRect(x-1.5,y-1.5,3,3)}
+  }
   // height marks every 5 m (200 units) from start
   const base=mode==='play'?startY:(level.spawn.y+R);
   const top=c.y-H/2/s,bot=c.y+H/2/s;
@@ -737,6 +838,7 @@ function render(){
     ctx.strokeStyle='rgba(24,35,58,0.1)';ctx.beginPath();for(let x=x0;x<c.x+hw;x+=100){ctx.moveTo(x,c.y-hh);ctx.lineTo(x,c.y+hh)}for(let y=y0;y<c.y+hh;y+=100){ctx.moveTo(c.x-hw,y);ctx.lineTo(c.x+hw,y)}ctx.stroke();
   }
   const objs=mode==='play'?objsAround(c.x,c.y,hw,hh):level.objs;
+  if(artOn())drawStructures(objs,c,s);
   for(const o of objs){if(o.type!=='coin')drawObj(o,simT)}
   for(const o of objs){if(o.type==='coin')drawObj(o,simT)}
   if(mode==='edit'){
@@ -863,7 +965,11 @@ for(const t in TYPES){const d=document.createElement('div');d.className='pal';d.
 function addObj(type,x,y){const T=TYPES[type];const o={id:++nextId,type};
   if(T.pt){o.x=snap(x);o.y=snap(y)}else{o.w=T.w;o.x=snap(x-o.w/2);o.y=snap(y-PH/2)}
   level.objs.push(o);sel=o;showSel();saveLevel();}
-function showSel(){$('selbar').hidden=!sel;if(!sel)return;$('selName').textContent=TYPES[sel.type].name;const rs=!!TYPES[sel.type].rs;$('wMinus').hidden=!rs;$('wPlus').hidden=!rs}
+function showSel(){$('selbar').hidden=!sel;if(!sel)return;$('selName').textContent=TYPES[sel.type].name;const rs=!!TYPES[sel.type].rs;$('wMinus').hidden=!rs;$('wPlus').hidden=!rs;lookLabel()}
+function lookLabel(){const b=$('bLook');b.hidden=!sel||!LANDABLE[sel.type]||sel.type==='spike';if(b.hidden)return;
+  const v=sel.look||'auto',name=k=>LOOKS.find(l=>l[0]===k)[1],now=lookOf(sel,level.objs);
+  b.textContent='Look: '+name(v)+(v==='auto'?` (${now==='none'?'sits on platform':name(now).toLowerCase()})`:'')}
+$('bLook').onclick=()=>{const i=LOOKS.findIndex(l=>l[0]===(sel.look||'auto'));const v=LOOKS[(i+1)%LOOKS.length][0];if(v==='auto')delete sel.look;else sel.look=v;lookLabel();saveLevel()};
 function delSel(){level.objs=level.objs.filter(o=>o!==sel);sel=null;showSel();saveLevel()}
 $('bDel').onclick=delSel;
 $('wMinus').onclick=()=>{sel.w=Math.max(40,sel.w-20);saveLevel()};
