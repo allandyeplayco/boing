@@ -304,6 +304,8 @@ const FEEL=[
  ['fastWindow','Fast tap window after a slam',0.1,0.8,0.01,'s'],
  ['shake','Screen shake',0,1,1,'bool'],
  ['sound','Sound',0,1,1,'bool'],
+ ['music','Music',0,1,1,'bool'],
+ ['musicVol','Music volume',0,1,0.05,'×'],
  ['bounceSfx','Sound on normal bounces',0,1,1,'bool'],
  ['restartOnDeath','Dying restarts the level',0,1,1,'bool'],
  ['deathArc','Death: pop up and fall off screen',0,1,1,'bool'],
@@ -312,7 +314,7 @@ const FEEL=[
  ['goalArrow','Arrow to the flag when it is off screen',0,1,1,'bool'],
  ['guide','Tap tutorial (finger) on levels with a new move',0,1,1,'bool']
 ];
-const DEF={guide:1,starRule:'slams',art:'painted',anchor:'wide',bgDepth:1,gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,intro:'fly',goalArrow:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,chainReset:1,lateFair:1,v2:1,v3:1};
+const DEF={music:1,musicVol:0.5,guide:1,starRule:'slams',art:'painted',anchor:'wide',bgDepth:1,gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,intro:'fly',goalArrow:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,chainReset:1,lateFair:1,v2:1,v3:1};
 const TURNS=[['every','Every slam'],['chain','Every slam after the 1st'],['second','Every 2nd slam'],['never','Never']];
 const SEGS={starRule:[['slams','Few slams'],['goals','3 goals'],['coins','Coins buy back slams']],art:[['painted','Painted (concept)'],['greybox','Greybox'],['plain','Plain (old)']],anchor:[['wide','Wide ones'],['all','All'],['none','None']],intro:[['fly','Fly from flag'],['zoom','Zoom out, then in'],['off','Off']],turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
 
@@ -453,7 +455,7 @@ function placeGuide(c,s){const el=$('guide'),d=guideLead();
   const tx=$('guideTxt'),tw=tx.offsetWidth,cx=Math.max(tw/2+10,Math.min(W-tw/2-10,x));tx.style.left=(cx-x-18)+'px'}
 // ---------- play ----------
 function startPlay(){
-  simT=0;BOT.watch=null;if(!SIM){liveTick=0;GUIDE=null}
+  simT=0;BOT.watch=null;if(!SIM){liveTick=0;GUIDE=null;if(mode==='play')musicStart(tries===1)}
   rt={broken:new Set(),got:new Set(),hits:new Map(),hitT:new Map()};
   const sp=world==='level'?level.spawn:{x:0,y:-60,dir:1};
   p={x:sp.x,y:sp.y,vx:0,vy:0,dir:sp.dir||1,slam:false,wind:0,combo:0,squash:0,land:null,lastSlamT:-9,tapGap:null};
@@ -487,7 +489,22 @@ function pop(x,y,text,color,size){pops.push({x,y,text,color:color||C.ink,life:1,
 let flashRGB='255,255,255';
 // ---------- sound ----------
 let AC=null;
-function audio(){if(SIM||!feel.sound)return null;try{if(!AC){const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;AC=new A()}if(AC.state==='suspended')AC.resume();return AC}catch(_){return null}}
+// ---------- Allan's sounds (audio/*.mp3, 2026-11-14; his originals are in audio/src) ----------
+// Loaded as soon as the page opens, decoded once the first tap creates the audio context. Until then (or if a file
+// is missing) the old synth sounds play instead.
+const SND={},SND_RAW={},SND_FILES={slam:'slambounce',spring:'spring',oof:'oof',flag:'flag',stinger:'victory-stinger',star1:'star-1',star2:'star-2',star3:'star-3',music:'world1-theme'};
+for(const k in SND_FILES)fetch('audio/'+SND_FILES[k]+'.mp3').then(r=>r.ok?r.arrayBuffer():null).then(b=>{if(b){SND_RAW[k]=b;sndDecode()}}).catch(()=>{});
+function sndDecode(){if(!AC)return;for(const k in SND_RAW){const b=SND_RAW[k];delete SND_RAW[k];
+  AC.decodeAudioData(b,x=>{SND[k]=x;if(k==='music'&&musicWant)musicStart(false)},()=>{})}}
+function play(k,vol,rate,t0){const a=audio();if(!a||!SND[k])return false;try{const s=a.createBufferSource(),g=a.createGain();s.buffer=SND[k];s.playbackRate.value=rate||1;g.gain.value=vol==null?1:vol;s.connect(g).connect(a.destination);s.start(a.currentTime+(t0||0))}catch(_){return false}return true}
+// Music: starts from the top when a level starts, keeps going through retries, stops at the flag.
+let musicSrc=null,musicGain=null,musicWant=false;
+function musicStart(fromTop){if(SIM)return;musicWant=true;if(!feel.music){musicStop();return}const a=audio();if(!a||!SND.music)return;
+  if(musicSrc&&!fromTop){musicGain.gain.value=feel.musicVol*0.7;return}musicStop(true);
+  try{const s=a.createBufferSource(),g=a.createGain();s.buffer=SND.music;s.loop=true;g.gain.value=feel.musicVol*0.7;s.connect(g).connect(a.destination);s.start();musicSrc=s;musicGain=g}catch(_){}}
+function musicStop(now){if(SIM)return;musicWant=false;const s=musicSrc,g=musicGain;musicSrc=null;musicGain=null;if(!s)return;
+  try{const t=AC.currentTime;if(now){s.stop()}else{g.gain.setValueAtTime(g.gain.value,t);g.gain.linearRampToValueAtTime(0.0001,t+0.25);s.stop(t+0.3)}}catch(_){}}
+function audio(){if(SIM||!feel.sound)return null;try{if(!AC){const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;AC=new A();setTimeout(sndDecode,0)}if(AC.state==='suspended')AC.resume();return AC}catch(_){return null}}
 function tone(f,t0,d,type,vol){const a=audio();if(!a)return;try{const o=a.createOscillator(),g=a.createGain(),t=a.currentTime+t0;o.type=type||'triangle';o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol||0.15,t+0.012);g.gain.exponentialRampToValueAtTime(0.0001,t+d);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+d+0.05)}catch(_){}}
 function sweep(f0,f1,t0,d,type,vol){const a=audio();if(!a)return;try{const o=a.createOscillator(),g=a.createGain(),t=a.currentTime+t0;o.type=type;o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+d);g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+0.008);g.gain.exponentialRampToValueAtTime(0.0001,t+d);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+d+0.05)}catch(_){}}
 function sfxSlam(c){
@@ -510,7 +527,7 @@ function celebrate(o){
   flash=1;flashRGB='255,255,255';shakeAmt=22;
   confetti(o.x+20,o.y-30,55);
   for(let i=0;i<3;i++)parts.push({ring:true,x:o.x+10,y:o.y+20,r:R+i*16,life:1,decay:1.1,color:i%2?C.ball:C.goal});
-  sfxWin();
+  musicStop();if(!play('flag'))sfxWin();play('stinger',0.9,1,0.55);
   try{!SIM&&navigator.vibrate&&navigator.vibrate([25,40,70])}catch(_){}
   if(world==='level'){const k=levelKey(),b=store.get(k);win.prev=b;if(b==null||t<b){store.set(k,t);win.best=b!=null}}
 }
@@ -520,7 +537,7 @@ function winStep(dt){
   p.vy+=feel.gravity*dt;p.y+=p.vy*dt;w.rot+=w.spin*dt;
   if(p.y>=w.baseY&&p.vy>0){p.y=w.baseY;p.vy=-720;p.squash=0.8;w.spin=0;w.rot=0;burst(p.x,p.y+R,5,C.ink3,160,4)}
   p.squash=Math.max(0,p.squash-dt*6);
-  if(w.waves<3&&w.age>w.waves*0.22){w.waves++;confetti(o.x+(Math.random()-.5)*260,o.y-40-Math.random()*80,40);tone(1568+w.waves*200,0,0.12,'square',0.05)}
+  if(w.waves<3&&w.age>w.waves*0.22){w.waves++;confetti(o.x+(Math.random()-.5)*260,o.y-40-Math.random()*80,40);if(!SND.stinger)tone(1568+w.waves*200,0,0.12,'square',0.05)}
   if(!w.banner&&w.age>0.3){w.banner=true;showBanner()}
   if(!w.ready&&w.age>1.2){w.ready=true;$('wTap').classList.add('on')}
   const s=scale();
@@ -576,7 +593,7 @@ function showBanner(){document.querySelectorAll('#wStars .w-twinkle').forEach(e=
   const par=inLevel?levelPar(level):null,st=$('wStars'),sr=par==null?null:starResult(stats.slams,stats.coins,nCoins,par),stars=sr?sr.stars:0;
   st.hidden=par==null;
   st.classList.toggle('lit',stars>0);
-  [...st.querySelectorAll('.w-star')].forEach((e,i)=>{e.classList.remove('pop');e.src='art/ui/'+(i<stars?'star':'star-empty')+'.png';setTimeout(()=>{e.classList.add('pop');if(i<stars){starSparkles(e);tone(988*Math.pow(1.26,i),0,0.12,'square',0.07);tone(1976*Math.pow(1.26,i),0.05,0.18,'triangle',0.05)}},420+i*260)});
+  [...st.querySelectorAll('.w-star')].forEach((e,i)=>{e.classList.remove('pop');e.src='art/ui/'+(i<stars?'star':'star-empty')+'.png';setTimeout(()=>{e.classList.add('pop');if(i<stars){starSparkles(e);if(!play('star'+(i+1))){tone(988*Math.pow(1.26,i),0,0.12,'square',0.07);tone(1976*Math.pow(1.26,i),0.05,0.18,'triangle',0.05)}}},420+i*260)});
   const wg=$('wGoal');wg.textContent=sr?sr.text:'';
   if(sr&&sr.goals){wg.textContent='';const L=['Reach the flag',nCoins>1?`All ${nCoins} coins`:nCoins?'The coin':'All coins (none here)',par===0?'No slams':`${par} slam${par===1?'':'s'} or fewer`];
     const ul=document.createElement('div');ul.className='w-goals';sr.goals.forEach((ok,i)=>{const d=document.createElement('div');d.className=ok?'ok':'no';d.textContent=(ok?'✓ ':'✗ ')+L[i];ul.appendChild(d)});wg.appendChild(ul)}
@@ -621,7 +638,8 @@ function doSlamBounce(o,combo,late){
   if(turn) p.dir*=-1;
   p.squash=1; shakeAmt=Math.max(shakeAmt,6+combo*3);
   burst(p.x,o.y,10+combo*4,C.ink,420,6); ring(p.x,o.y,C.ink);
-  sfxSlam(combo);
+  if(o.type==='spring'){if(!play('spring',0.9))sweep(220,880,0,0.28,'triangle',0.1);play('slam',0.7,combo>=2?1.12:1)}
+  else if(!play('slam',1,combo>=2?1.12:1))sfxSlam(combo);
   if(combo>=2){
     const names=['','','DOUBLE!','TRIPLE!','QUAD!'];
     pop(p.x,o.y-56,(names[combo]||`×${combo}!`)+(turn?' ↺':''),combo%2?C.spring:C.accent,40);
@@ -640,13 +658,13 @@ function land(o){
     const prev=p.combo; p.combo=0;
     let v=feel.bounce; if(o.type==='spring'){v*=feel.springMult;springT.set(o.id,simT);if(!SIM)springHitT=simT}
     p.vy=-v; p.squash=0.7; burst(p.x,o.y,4,C.ink3,160,4);
-    if(feel.bounceSfx){if(o.type==='spring'){sweep(220,880,0,0.28,'triangle',0.1)}else{const f=330*(o.type==='brk'?0.85:o.type==='brk2'?0.75:1);sweep(f,f*0.62,0,0.09,'sine',0.13);sweep(f*2,f*1.3,0,0.04,'triangle',0.025)}}
+    if(feel.bounceSfx){if(o.type==='spring'){if(!play('spring',0.9))sweep(220,880,0,0.28,'triangle',0.1)}else sfxSlam(1) /* Allan: normal bounces use the old slam sound */}
     p.land={t:simT,o,prev,used:false};
   }
   if(o.type==='plat'||o.type==='spring') ckpt={x:Math.max(o.x+R,Math.min(o.x+o.w-R,p.x)),y:o.y-R-2};
 }
 function die(why){
-  if(feel.restartOnDeath){burst(p.x,p.y,22,C.spike,520,7);ring(p.x,p.y,C.spike);pop(p.x,p.y-40-(feel.skin!=='ball'?R*2*(feel.boingSize-1)+20:0),why,C.spike);shakeAmt=12;p.slam=false;trail=[];if(feel.deathArc){p.vx=p.dir*feel.speed*0.4;p.vy=why==='Spiked'?-1100:Math.max(p.vy,600);deadT=why==='Spiked'?1.2:0.8}else{p.vx=0;p.vy=0;deadT=0.5}tone(220,0,0.25,'square',0.07);tone(147,0.12,0.35,'square',0.07);return}
+  if(feel.restartOnDeath){burst(p.x,p.y,22,C.spike,520,7);ring(p.x,p.y,C.spike);pop(p.x,p.y-40-(feel.skin!=='ball'?R*2*(feel.boingSize-1)+20:0),why,C.spike);shakeAmt=12;p.slam=false;trail=[];if(feel.deathArc){p.vx=p.dir*feel.speed*0.4;p.vy=why==='Spiked'?-1100:Math.max(p.vy,600);deadT=why==='Spiked'?1.2:0.8}else{p.vx=0;p.vy=0;deadT=0.5}if(!play('oof')){tone(220,0,0.25,'square',0.07);tone(147,0.12,0.35,'square',0.07)}return}
   burst(p.x,p.y,18,C.spike,500,7); stats.falls++;
   pop(ckpt.x,ckpt.y-50,why,C.spike);
   Object.assign(p,{x:ckpt.x,y:ckpt.y-30,vx:0,vy:0,slam:false,wind:0,combo:0,land:null});
@@ -655,7 +673,7 @@ function die(why){
 function tap(){
   if(mode!=='play'||paused||(BOT.busy&&!SIM)) return;
   if(BOT.watch&&!BOT.watch.tapping&&!win) return;
-  if(!SIM){hideHint();audio()}
+  if(!SIM){hideHint();audio();if(mode==='play'&&!win&&!musicSrc)musicStart(false)}
   if(INTRO){INTRO=null;pcam.x=p.x+p.dir*feel.look;pcam.y=p.y-40;return}
   if(win){if(win.ready){tries=1;if(world==='level'){setLevel(pack.cur+1);toast(`Level ${pack.cur+1}: ${level.name}`)}else startPlay()}return}
   if(deadT>0) return;
@@ -1261,6 +1279,7 @@ $('bFeelReset').onclick=()=>{feel=Object.assign({},DEF);store.set('sbl_feel',fee
 let hintTimer=0;
 function hideHint(){$('hint').style.opacity=0;clearTimeout(hintTimer);hintTimer=setTimeout(()=>{$('hint').hidden=true},400)}
 function setMode(m){
+  if(m!=='play')musicStop(true);
   mode=m;$('bEdit').classList.toggle('on',m==='edit');$('bPlay').classList.toggle('on',m==='play');
   $('tray').hidden=m!=='edit';$('bWorld').hidden=$('bRestart').hidden=m!=='play';
   $('lvBar').hidden=m==='play'&&world==='endless';
@@ -1438,7 +1457,7 @@ function botTolerance(lv,plan){
     return {taps:base.ticks,win:win_,plan:plan.slice(0,base.used||plan.length)};
   } finally {botGive(keep)}
 }
-const LOOK_ONLY=new Set(['guide','starRule','art','bgDepth','anchor','skin','boingSize','poseBlend','tilt','squashAmt','showHitbox','zoom','look','shake','sound','bounceSfx','phoneFrame','intro','goalArrow','deathArc']);
+const LOOK_ONLY=new Set(['music','musicVol','guide','starRule','art','bgDepth','anchor','skin','boingSize','poseBlend','tilt','squashAmt','showHitbox','zoom','look','shake','sound','bounceSfx','phoneFrame','intro','goalArrow','deathArc']);
 // like botLevelHash, but ignores Feel settings that only change the look
 function botHashKey(lv){const f={};for(const k in feel)if(!LOOK_ONLY.has(k))f[k]=feel[k];const t=JSON.stringify(lv.objs)+JSON.stringify(lv.spawn)+JSON.stringify(f);let h=0;for(let i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))|0;return h}
 function botLevelHash(lv){return JSON.stringify(lv.objs)+JSON.stringify(lv.spawn)+JSON.stringify(feel)}
