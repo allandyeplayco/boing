@@ -71,6 +71,9 @@ button.on{background:var(--accent)}
 #win.in .w-stars.lit::before{opacity:1}
 .w-star{position:relative;width:82px;height:auto;opacity:0;transform:scale(.2);filter:drop-shadow(0 4px 0 rgba(91,58,96,.28))}
 .w-star:nth-child(2){width:100px;margin:0 -6px 12px;z-index:1}
+.w-twinkle{position:absolute;z-index:2;height:auto;pointer-events:none;opacity:0;animation:wtw .7s ease-out forwards}
+.w-twinkle.loop{animation:wtw 1.6s ease-in-out infinite}
+@keyframes wtw{0%{opacity:0;transform:scale(.1) rotate(0)}35%{opacity:1;transform:scale(1.15) rotate(45deg)}100%{opacity:0;transform:scale(.3) rotate(90deg)}}
 .w-star.pop{animation:wstar .5s cubic-bezier(.2,1.9,.4,1) forwards}
 @keyframes wstar{0%{opacity:0;transform:scale(.2) rotate(-40deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
 .w-spark{position:absolute;top:22px;width:44px;height:50px;opacity:0;transition:opacity .3s 1.1s}
@@ -351,6 +354,7 @@ let sel=null, snapOn=true;
 let p, rt, ckpt, startY, stats, simT=0, shakeAmt=0, lastLandY=0;
 let parts=[], pops=[], trail=[], springT=new Map();
 let win=null, flash=0, deadT=0, tries=1;
+let springHitT=-1; // simT of Boing's last spring bounce in real play (Spine summersault)
 let SIM=false; // true while the level bot simulates: no sound, buzz or saved times
 const BOT={watch:null,busy:false};
 let INTRO=null; // level-start camera move that shows the flag first (Feel: intro)
@@ -468,7 +472,17 @@ function starsFor(slams,par){return slams<=par?3:slams<=par+starStep(par)?2:1}
 // par is worked out once per level layout and Feel (the bot searches for the fewest slams), then remembered on this device.
 function levelPar(lv){const k='sbl_par_'+botHashKey(lv);let v=store.get(k);if(v==null){try{const r=botRunSync(botSearch(lv,null,15000,60));if(r.ok){v=Math.min(...r.plans.map(pl=>pl.filter(st=>st.k>=0).length));store.set(k,v)}}catch(e){}}return v==null?null:v}
 
-function showBanner(){
+// Allan's sparkle (art/ui/sparkle.png): a burst of twinkles around each star as it pops in the level clear popup
+function starSparkles(star){const box=star.parentNode;if(!box||matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+  const cx=star.offsetLeft+star.offsetWidth/2,cy=star.offsetTop+star.offsetHeight/2,r=star.offsetWidth*0.55;
+  for(let k=0;k<7;k++){const im=document.createElement('img');im.src='art/ui/sparkle.png';im.className='w-twinkle';im.alt='';
+    const a=k/7*Math.PI*2+Math.random()*0.6,d=r*(0.75+Math.random()*0.6),sz=22+Math.random()*30;
+    im.style.cssText=`left:${cx+Math.cos(a)*d-sz/2}px;top:${cy+Math.sin(a)*d-sz/2}px;width:${sz}px;animation-delay:${Math.random()*0.25}s;animation-duration:${0.55+Math.random()*0.4}s`;
+    box.appendChild(im);setTimeout(()=>im.remove(),1400)}
+  // a few slow twinkles that keep going while the popup is up
+  for(let k=0;k<2;k++){const im=document.createElement('img');im.src='art/ui/sparkle.png';im.className='w-twinkle loop';im.alt='';const sz=18+Math.random()*14;
+    im.style.cssText=`left:${star.offsetLeft+Math.random()*star.offsetWidth-sz/2}px;top:${star.offsetTop+Math.random()*star.offsetHeight*0.8-sz/2}px;width:${sz}px;animation-delay:${0.6+Math.random()*1.5}s`;box.appendChild(im)}}
+function showBanner(){document.querySelectorAll('#wStars .w-twinkle').forEach(e=>e.remove());
   $('wTap').textContent=world==='level'?`Tap for level ${(pack.cur+1)%NLEV+1}`:'Tap to go again';
   const el=$('win');el.hidden=false;el.classList.remove('in');void el.offsetWidth;el.classList.add('in');$('wTap').classList.remove('on');
   const b=$('wBest'),inLevel=world==='level';
@@ -483,7 +497,7 @@ function showBanner(){
   const par=inLevel?levelPar(level):null,st=$('wStars'),stars=par==null?0:starsFor(stats.slams,par);
   st.hidden=par==null;
   st.classList.toggle('lit',stars>0);
-  [...st.querySelectorAll('.w-star')].forEach((e,i)=>{e.classList.remove('pop');e.src='art/ui/'+(i<stars?'star':'star-empty')+'.png';setTimeout(()=>{e.classList.add('pop');if(i<stars){tone(988*Math.pow(1.26,i),0,0.12,'square',0.07);tone(1976*Math.pow(1.26,i),0.05,0.18,'triangle',0.05)}},420+i*260)});
+  [...st.querySelectorAll('.w-star')].forEach((e,i)=>{e.classList.remove('pop');e.src='art/ui/'+(i<stars?'star':'star-empty')+'.png';setTimeout(()=>{e.classList.add('pop');if(i<stars){starSparkles(e);tone(988*Math.pow(1.26,i),0,0.12,'square',0.07);tone(1976*Math.pow(1.26,i),0.05,0.18,'triangle',0.05)}},420+i*260)});
   $('wGoal').textContent=par==null?'':stars>=3?`Perfect! ${par===0?'No slams needed':par+' slam'+(par===1?'':'s')+' is the best there is'}`:`3 stars: ${par===0?'no slams':par+' slam'+(par===1?'':'s')+' or fewer'} · 2 stars: ${par+starStep(par)} or fewer`;
   if(inLevel&&!SIM){const k=levelKey()+'_stars',old=store.get(k)||0;if(stars>old)store.set(k,stars)}
   if(win.best||(inLevel&&win.prev==null))setTimeout(()=>{tone(1319,0,0.12,'square',0.07);tone(1760,0.1,0.3,'square',0.07)},650);
@@ -506,7 +520,7 @@ function turnsAt(c){return feel.turn==='every'||(feel.turn==='chain'&&c>=2)||(fe
 function doSlamBounce(o,combo,late){
   p.combo=combo; stats.slams++;
   let v=slamBounceV(combo);
-  if(o.type==='spring'){v*=feel.springMult;springT.set(o.id,simT)}
+  if(o.type==='spring'){v*=feel.springMult;springT.set(o.id,simT);if(!SIM)springHitT=simT}
   if((o.type==='brk'||o.type==='brk2')&&hitBrk(o)&&feel.brkThrough){
     p.combo=combo;p.slam=false;p.wind=0;p.vy=feel.slamSpeed*0.6;p.land=null;p.y=o.y+PH-R+2;
     shakeAmt=Math.max(shakeAmt,12);burst(p.x,o.y+PH,14,C.brkD,380,6);
@@ -542,7 +556,7 @@ function land(o){
   if(p.slam){p.slam=false;doSlamBounce(o,nextCombo(p.combo),false);p.land=null}
   else{
     const prev=p.combo; p.combo=0;
-    let v=feel.bounce; if(o.type==='spring'){v*=feel.springMult;springT.set(o.id,simT)}
+    let v=feel.bounce; if(o.type==='spring'){v*=feel.springMult;springT.set(o.id,simT);if(!SIM)springHitT=simT}
     p.vy=-v; p.squash=0.7; burst(p.x,o.y,4,C.ink3,160,4);
     if(feel.bounceSfx){if(o.type==='spring'){sweep(220,880,0,0.28,'triangle',0.1)}else{const f=330*(o.type==='brk'?0.85:o.type==='brk2'?0.75:1);sweep(f,f*0.62,0,0.09,'sine',0.13);sweep(f*2,f*1.3,0,0.04,'triangle',0.025)}}
     p.land={t:simT,o,prev,used:false};
@@ -726,9 +740,10 @@ async function spineBoot(){
   }catch(e){SP.failed=true}
 }
 function spineAnim(o,dir){if(o.dead){SP.lastDir=dir;return'dead'}if(o.happy){SP.lastDir=dir;return'win'}if(o.slam)return'slam';
-  // turning around (the DOUBLE slam) plays 'summersault' once, then goes back to 'air'
+  // turning around (the DOUBLE slam) or bouncing off a spring plays 'summersault' once, then goes back to 'air'
   const turned=SP.lastDir!=null&&dir!==SP.lastDir;SP.lastDir=dir;
-  if(turned&&SP.has('summersault')){SP.restart=true;SP.lastSq=o.squash||0;return'summersault'}
+  const sprung=springHitT>=0&&springHitT!==SP.seenSpring&&simT-springHitT<0.1;SP.seenSpring=springHitT;
+  if((turned||sprung)&&SP.has('summersault')){SP.restart=true;SP.lastSq=o.squash||0;return'summersault'}
   if(SP.cur==='summersault'){const e=SP.state.getCurrent(0);if(e&&!e.isComplete()){SP.lastSq=o.squash||0;return'summersault'}}
   // a landing (squash jumps up) starts 'land', which plays to its end before going back to 'air'
   const sq=o.squash||0,hit=sq>(SP.lastSq||0)+0.2;SP.lastSq=sq;
@@ -773,7 +788,7 @@ function drawBall(x,y,dir,opts){
 // the walk line is pixel row 8 of every cap picture. Anchored platforms use the stone cap on a layered brick base,
 // floating ones use the plank platform. Falls back to the greybox until the pictures have loaded.
 const ART_K=0.55, ART_DIR='art/world/', ART_WALK=8;
-const WIMG={};for(const n of ['cap-left','cap-mid','cap-right','float-left','float-mid','float-right','base-mid','base-bricks','deco-banner','deco-vine','bg-far','cloud-1','cloud-2','cloud-3','brk-left','brk-mid','brk-right','brk2-left','brk2-mid','brk2-right','brk2-cracked-left','brk2-cracked-mid','brk2-cracked-right','spring','spring-squash','spikes-mid','goal-flag','coin-world','piece-bits']){const i=new Image();i.src=ART_DIR+n+'.png';WIMG[n]=i}
+const WIMG={};for(const n of ['cap-left','cap-mid','cap-right','float-left','float-mid','float-right','base-mid','base-bricks','deco-banner','deco-vine','bg-far','cloud-1','cloud-2','cloud-3','brk-left','brk-mid','brk-right','brk2-left','brk2-mid','brk2-right','brk2-cracked-left','brk2-cracked-mid','brk2-cracked-right','spring','spring-squash','spikes-mid','goal-flag','coin-world','coin-spin','piece-bits']){const i=new Image();i.src=ART_DIR+n+'.png';WIMG[n]=i}
 const wimgOk=n=>{const i=WIMG[n];return i&&i.complete&&i.naturalWidth>0};
 const paintOn=()=>feel.art==='painted'&&wimgOk('cap-mid')&&wimgOk('base-bricks')&&wimgOk('bg-far');
 const LOOKC=new Map();
@@ -794,7 +809,10 @@ function drawPaintedSpikes(o){const im=WIMG['spikes-mid'];if(!paintOn()||!wimgOk
   const h=28,tw0=64*h/48,n=Math.max(1,Math.round(o.w/tw0)),tw=o.w/n;for(let i=0;i<n;i++)ctx.drawImage(im,o.x+i*tw,o.y-10,tw+0.5,h);return true}
 function drawPaintedGoal(o,t){const im=WIMG['goal-flag'];if(!paintOn()||!wimgOk('goal-flag'))return false;
   const k=0.6,w=120*k,h=200*k,sw=1+Math.sin(t*4)*0.03;ctx.save();ctx.translate(o.x,o.y+36);ctx.scale(sw,1);ctx.drawImage(im,-w/2,-h,w,h);ctx.restore();return true}
-function drawPaintedCoin(o,t){const im=WIMG['coin-world'];if(!paintOn()||!wimgOk('coin-world'))return false;
+function drawPaintedCoin(o,t){if(paintOn()&&wimgOk('coin-spin')){ // Allan's spinning coin: 12 frames of 96 px in one strip
+    const im=WIMG['coin-spin'],n=Math.round(im.naturalWidth/im.naturalHeight),fs=im.naturalHeight,f=Math.floor(t*16+o.x*0.05+o.y*0.03)%n,b=Math.sin(t*3+o.x*0.013)*3,d=38;
+    ctx.drawImage(im,((f%n)+n)%n*fs,0,fs,fs,o.x-d/2,o.y+b-d/2,d,d);return true}
+  const im=WIMG['coin-world'];if(!paintOn()||!wimgOk('coin-world'))return false;
   const b=Math.sin(t*3+o.x*0.013)*3,sq=Math.abs(Math.cos(t*2.2+o.x*0.01)),d=34;ctx.save();ctx.translate(o.x,o.y+b);ctx.scale(0.3+0.7*sq,1);ctx.drawImage(im,-d/2,-d/2,d,d);ctx.restore();return true}
 function drawPaintedSlab(o,dmg){if(!paintOn())return false;const kind=dmg&&o.type==='brk2'?'brk2-cracked':o.type;if(!wimgOk(kind+'-mid'))return false;return drawPaintedCap(o,kind)}
 function drawPaintedStructures(objs,c,s){
