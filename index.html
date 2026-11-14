@@ -86,6 +86,8 @@ button.on{background:var(--accent)}
 .w-spark.l{left:0}.w-spark.r{right:0;transform:scaleX(-1)}
 #win.in .w-stars.lit .w-spark{opacity:1}
 .w-goal{font:700 14px/1.25 var(--f-display);color:#5A2F52;min-height:1.25em;text-align:center}
+.w-goals{display:flex;flex-direction:column;align-items:flex-start;gap:3px;font:700 16px/1.2 var(--f-display)}
+.w-goals .ok{color:#2E9A55}.w-goals .no{color:#B0607A;opacity:.85}
 .w-panel .w-stats{position:relative;isolation:isolate;width:100%;justify-content:space-around;background:none;padding:12px 10px 13px}
 .w-panel .w-stats::before{content:'';position:absolute;inset:0;z-index:-1;background:url(art/ui/stats-bar.png) center/100% 100% no-repeat}
 .w-panel .w-stats div{min-width:0;flex:1;gap:3px}
@@ -247,6 +249,7 @@ const TYPES={
   goal:{name:'Goal',pt:true}
 };
 const FEEL=[
+ ['starRule','Stars are for',0,0,0,'seg'],
  ['art','World art',0,0,0,'seg'],
  ['anchor','Platforms with a base (auto)',0,0,0,'seg'],
  ['bgDepth','Background depth (parallax)',0,2,0.05,'×'],
@@ -285,9 +288,9 @@ const FEEL=[
  ['intro','Level start: show the flag first',0,0,0,'seg'],
  ['goalArrow','Arrow to the flag when it is off screen',0,1,1,'bool']
 ];
-const DEF={art:'painted',anchor:'wide',bgDepth:1,gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,intro:'fly',goalArrow:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,chainReset:1,lateFair:1,v2:1,v3:1};
+const DEF={starRule:'slams',art:'painted',anchor:'wide',bgDepth:1,gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,intro:'fly',goalArrow:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,chainReset:1,lateFair:1,v2:1,v3:1};
 const TURNS=[['every','Every slam'],['chain','Every slam after the 1st'],['second','Every 2nd slam'],['never','Never']];
-const SEGS={art:[['painted','Painted (concept)'],['greybox','Greybox'],['plain','Plain (old)']],anchor:[['wide','Wide ones'],['all','All'],['none','None']],intro:[['fly','Fly from flag'],['zoom','Zoom out, then in'],['off','Off']],turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
+const SEGS={starRule:[['slams','Few slams'],['goals','3 goals'],['coins','Coins buy back slams']],art:[['painted','Painted (concept)'],['greybox','Greybox'],['plain','Plain (old)']],anchor:[['wide','Wide ones'],['all','All'],['none','None']],intro:[['fly','Fly from flag'],['zoom','Zoom out, then in'],['off','Off']],turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
 
 const MEM={};
 const CLOUD={kv:null,ready:false,booted:false,localDirty:false,timer:0,busy:false,again:false,ref:null};
@@ -473,6 +476,20 @@ function countUp(el,to,dec,ms,onTick,fmt){const t0=performance.now();let lastI=-
 // Stars: 3 = within the fewest slams the bot found (par), 2 = a few more, 1 = any clear.
 const starStep=par=>Math.max(2,Math.ceil(par*0.5));
 function starsFor(slams,par){return slams<=par?3:slams<=par+starStep(par)?2:1}
+// Feel "Stars are for" (Allan is comparing, 2026-11-14):
+//  slams = fewer slams, more stars (starsFor above);
+//  goals = one star each for the flag, every coin, and par slams or fewer (Cut the Rope style; coins off the best route cost slams);
+//  coins = like slams, but every COIN_BUYBACK coins take one slam off the count (coins forgive extra slams).
+const COIN_BUYBACK=3;
+function starResult(slams,coins,nCoins,par){
+  const pl=n=>n+' slam'+(n===1?'':'s');
+  if(feel.starRule==='goals'){const g=[true,nCoins===0||coins>=nCoins,slams<=par];
+    return{stars:g.filter(Boolean).length,goals:g,text:`${par===0?'No slams':pl(par)+' or fewer'} for the 3rd star`}}
+  if(feel.starRule==='coins'){const off=Math.min(slams,Math.floor(coins/COIN_BUYBACK)),eff=slams-off,stars=starsFor(eff,par);
+    const why=off?`${pl(slams)} − ${off} for coins = ${eff} · `:'';
+    return{stars,text:stars>=3?`Perfect! ${why}3 stars at ${par}`:`${why}3 stars: ${par} or fewer · every ${COIN_BUYBACK} coins = 1 slam back`}}
+  const stars=starsFor(slams,par);
+  return{stars,text:stars>=3?`Perfect! ${par===0?'No slams needed':pl(par)+' is the best there is'}`:`3 stars: ${par===0?'no slams':pl(par)+' or fewer'} · 2 stars: ${par+starStep(par)} or fewer`}}
 // par is worked out once per level layout and Feel (the bot searches for the fewest slams), then remembered on this device.
 function levelPar(lv){const k='sbl_par_'+botHashKey(lv);let v=store.get(k);if(v==null){try{const r=botRunSync(botSearch(lv,null,15000,60));if(r.ok){v=Math.min(...r.plans.map(pl=>pl.filter(st=>st.k>=0).length));store.set(k,v)}}catch(e){}}return v==null?null:v}
 
@@ -502,11 +519,13 @@ function showBanner(){document.querySelectorAll('#wStars .w-twinkle').forEach(e=
   countUp($('wSlams'),stats.slams,0,650);
   $('wLv').textContent=inLevel?`Level ${pack.cur+1} · ${level.name||''}`:'Endless';
   // stars: fewer slams = more stars. par = the fewest slams the level bot found.
-  const par=inLevel?levelPar(level):null,st=$('wStars'),stars=par==null?0:starsFor(stats.slams,par);
+  const par=inLevel?levelPar(level):null,st=$('wStars'),sr=par==null?null:starResult(stats.slams,stats.coins,nCoins,par),stars=sr?sr.stars:0;
   st.hidden=par==null;
   st.classList.toggle('lit',stars>0);
   [...st.querySelectorAll('.w-star')].forEach((e,i)=>{e.classList.remove('pop');e.src='art/ui/'+(i<stars?'star':'star-empty')+'.png';setTimeout(()=>{e.classList.add('pop');if(i<stars){starSparkles(e);tone(988*Math.pow(1.26,i),0,0.12,'square',0.07);tone(1976*Math.pow(1.26,i),0.05,0.18,'triangle',0.05)}},420+i*260)});
-  $('wGoal').textContent=par==null?'':stars>=3?`Perfect! ${par===0?'No slams needed':par+' slam'+(par===1?'':'s')+' is the best there is'}`:`3 stars: ${par===0?'no slams':par+' slam'+(par===1?'':'s')+' or fewer'} · 2 stars: ${par+starStep(par)} or fewer`;
+  const wg=$('wGoal');wg.textContent=sr?sr.text:'';
+  if(sr&&sr.goals){wg.textContent='';const L=['Reach the flag',nCoins>1?`All ${nCoins} coins`:nCoins?'The coin':'All coins (none here)',par===0?'No slams':`${par} slam${par===1?'':'s'} or fewer`];
+    const ul=document.createElement('div');ul.className='w-goals';sr.goals.forEach((ok,i)=>{const d=document.createElement('div');d.className=ok?'ok':'no';d.textContent=(ok?'✓ ':'✗ ')+L[i];ul.appendChild(d)});wg.appendChild(ul)}
   if(inLevel&&!SIM){const k=levelKey()+'_stars',old=store.get(k)||0;if(stars>old)store.set(k,stars)}
   if(win.best||(inLevel&&win.prev==null))setTimeout(()=>{tone(1319,0,0.12,'square',0.07);tone(1760,0.1,0.3,'square',0.07)},650);
 }
@@ -1358,7 +1377,7 @@ function botTolerance(lv,plan){
     return {taps:base.ticks,win:win_,plan:plan.slice(0,base.used||plan.length)};
   } finally {botGive(keep)}
 }
-const LOOK_ONLY=new Set(['art','bgDepth','anchor','skin','boingSize','poseBlend','tilt','squashAmt','showHitbox','zoom','look','shake','sound','bounceSfx','phoneFrame','intro','goalArrow','deathArc']);
+const LOOK_ONLY=new Set(['starRule','art','bgDepth','anchor','skin','boingSize','poseBlend','tilt','squashAmt','showHitbox','zoom','look','shake','sound','bounceSfx','phoneFrame','intro','goalArrow','deathArc']);
 // like botLevelHash, but ignores Feel settings that only change the look
 function botHashKey(lv){const f={};for(const k in feel)if(!LOOK_ONLY.has(k))f[k]=feel[k];const t=JSON.stringify(lv.objs)+JSON.stringify(lv.spawn)+JSON.stringify(f);let h=0;for(let i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))|0;return h}
 function botLevelHash(lv){return JSON.stringify(lv.objs)+JSON.stringify(lv.spawn)+JSON.stringify(feel)}
