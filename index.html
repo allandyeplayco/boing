@@ -312,9 +312,10 @@ const FEEL=[
  ['phoneFrame','Phone-size view on a computer',0,1,1,'bool'],
  ['intro','Level start: show the flag first',0,0,0,'seg'],
  ['goalArrow','Arrow to the flag when it is off screen',0,1,1,'bool'],
- ['guide','Tap tutorial (finger) on levels with a new move',0,1,1,'bool']
+ ['guide','Tap tutorial (finger) on levels with a new move',0,1,1,'bool'],
+ ['guideAlways','Tutorial every time (even after clearing)',0,1,1,'bool']
 ];
-const DEF={music:1,musicVol:0.5,guide:1,starRule:'slams',art:'painted',anchor:'wide',bgDepth:1,gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,intro:'fly',goalArrow:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,chainReset:1,lateFair:1,v2:1,v3:1};
+const DEF={guideAlways:1,music:1,musicVol:0.5,guide:1,starRule:'slams',art:'painted',anchor:'wide',bgDepth:1,gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,intro:'fly',goalArrow:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,chainReset:1,lateFair:1,v2:1,v3:1};
 const TURNS=[['every','Every slam'],['chain','Every slam after the 1st'],['second','Every 2nd slam'],['never','Never']];
 const SEGS={starRule:[['slams','Few slams'],['goals','3 goals'],['coins','Coins buy back slams']],art:[['painted','Painted (concept)'],['greybox','Greybox'],['plain','Plain (old)']],anchor:[['wide','Wide ones'],['all','All'],['none','None']],intro:[['fly','Fly from flag'],['zoom','Zoom out, then in'],['off','Off']],turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
 
@@ -440,14 +441,14 @@ function guidePlan(lv){const k=botHashKey(lv);if(guideCache.has(k))return guideC
   try{const r=botRunSync(botSearch(lv,null,15000,8));if(r.ok){const pl=r.plans.slice().sort((a,b)=>a.filter(x=>x.k>=0).length-b.filter(x=>x.k>=0).length)[0];const tol=botTolerance(lv,pl);if(tol)t=tol.taps}}catch(e){}
   guideCache.set(k,t);return t}
 function guideStart(){GUIDE=null;if(!feel.guide||world!=='level'||mode!=='play'||BOT.watch||BOT.busy)return;
-  const mv=guideMove(pack.cur),k=levelKey();if(!mv||guideDone.has(k))return;
+  const mv=guideMove(pack.cur),k=levelKey();if(!mv||(guideDone.has(k)&&!feel.guideAlways))return;
   const t=guidePlan(level);if(!t||!t.length||mode!=='play'||win||t[0]<liveTick)return;
   GUIDE={ticks:t,i:0,move:mv,wait:false,off:false}}
 function guideLabel(){if(!GUIDE)return'';if(GUIDE.move==='double')return GUIDE.i>0?GUIDE_TXT.double:GUIDE_TXT.slam;if(GUIDE.move==='tough'&&GUIDE.i===0)return'SLAM it!';return GUIDE_TXT[GUIDE.move]||'TAP!'}
 function guideLead(){if(!GUIDE||GUIDE.off||win||deadT>0||INTRO)return 9;const t=GUIDE.ticks[GUIDE.i];return t==null?9:(t-liveTick)/120}
 function placeGuide(c,s){const el=$('guide'),d=guideLead();
   // level 1 needs no taps: just say so for the first few seconds
-  const intro1=feel.guide&&mode==='play'&&world==='level'&&pack.cur===0&&!INTRO&&!win&&liveTick<360&&!guideDone.has(levelKey());
+  const intro1=feel.guide&&mode==='play'&&world==='level'&&pack.cur===0&&!INTRO&&!win&&liveTick<360&&(feel.guideAlways||!guideDone.has(levelKey()));
   const on=mode==='play'&&(d<0.35||intro1);
   if(!on){if(!el.hidden)el.hidden=true;return}
   el.hidden=false;el.classList.toggle('wait',!!(GUIDE&&GUIDE.wait));el.classList.toggle('msg',d>=0.35);$('guideTxt').textContent=d<0.35?guideLabel():'Boing bounces by himself!';
@@ -1457,7 +1458,7 @@ function botTolerance(lv,plan){
     return {taps:base.ticks,win:win_,plan:plan.slice(0,base.used||plan.length)};
   } finally {botGive(keep)}
 }
-const LOOK_ONLY=new Set(['music','musicVol','guide','starRule','art','bgDepth','anchor','skin','boingSize','poseBlend','tilt','squashAmt','showHitbox','zoom','look','shake','sound','bounceSfx','phoneFrame','intro','goalArrow','deathArc']);
+const LOOK_ONLY=new Set(['guideAlways','music','musicVol','guide','starRule','art','bgDepth','anchor','skin','boingSize','poseBlend','tilt','squashAmt','showHitbox','zoom','look','shake','sound','bounceSfx','phoneFrame','intro','goalArrow','deathArc']);
 // like botLevelHash, but ignores Feel settings that only change the look
 function botHashKey(lv){const f={};for(const k in feel)if(!LOOK_ONLY.has(k))f[k]=feel[k];const t=JSON.stringify(lv.objs)+JSON.stringify(lv.spawn)+JSON.stringify(f);let h=0;for(let i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))|0;return h}
 function botLevelHash(lv){return JSON.stringify(lv.objs)+JSON.stringify(lv.spawn)+JSON.stringify(feel)}
