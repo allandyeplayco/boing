@@ -25,6 +25,27 @@ button.on{background:var(--accent)}
 #top{position:absolute;top:0;left:0;right:0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;
   padding:calc(env(safe-area-inset-top,0px) + 10px) max(12px,env(safe-area-inset-right,0px)) 8px max(12px,env(safe-area-inset-left,0px));pointer-events:none}
 #top>*{pointer-events:auto}
+/* Pitch mode (default): dev tools hidden. Hold the level name for 1 s, or add ?dev=1 to the address, to show them. */
+#coinPill{display:none;align-items:center;gap:6px;background:linear-gradient(#8A5C91,#5B3A60);border:2.5px solid #3E2443;border-radius:999px;padding:4px 14px 4px 5px;box-shadow:inset 0 2px 0 rgba(255,255,255,.25),0 3px 0 rgba(40,20,50,.35)}
+#coinPill img{width:30px;height:30px}
+#coinPill b{font:700 20px/1 var(--f-display);color:#FFDE3D;text-shadow:0 2px 0 #3E2443;font-variant-numeric:tabular-nums}
+#coinPill.bump{animation:cbump .3s cubic-bezier(.2,1.8,.4,1)}
+@keyframes cbump{0%{transform:scale(1.3)}100%{transform:none}}
+html.pitch #coinPill{display:flex}
+html.pitch #top .seg,html.pitch #hud,html.pitch #bWorld,html.pitch #bBot,html.pitch #bFeel,html.pitch #hint{display:none!important}
+html.pitch .lvl{background:linear-gradient(#8A5C91,#5B3A60);border:2.5px solid #3E2443;border-radius:999px;box-shadow:inset 0 2px 0 rgba(255,255,255,.25),0 3px 0 rgba(40,20,50,.35)}
+html.pitch .lvl button{background:none;color:#fff}
+html.pitch .lvl span{color:#fff;font-size:15px}
+html.pitch #bRestart{width:42px;height:42px;padding:0;border-radius:50%;font:700 22px/1 var(--f-display);color:#fff;background:linear-gradient(#8A5C91,#5B3A60);border:2.5px solid #3E2443;box-shadow:inset 0 2px 0 rgba(255,255,255,.25),0 3px 0 rgba(40,20,50,.35)}
+#guide{position:absolute;left:0;top:0;z-index:15;pointer-events:none;width:0;height:0}
+#guide .g-hand{position:absolute;left:0;top:0;width:66px;height:auto;transform-origin:10% 6%;animation:gpress .55s ease-in-out infinite;filter:drop-shadow(0 4px 4px rgba(40,20,50,.35))}
+#guide .g-txt{position:absolute;left:0;top:-128px;transform:translateX(-50%);white-space:nowrap;font:700 30px/1 var(--f-display);color:#FFDE3D;letter-spacing:.02em;
+  text-shadow:3px 0 #5B3A60,-3px 0 #5B3A60,0 3px #5B3A60,0 -3px #5B3A60,2px 2px #5B3A60,-2px -2px #5B3A60,2px -2px #5B3A60,-2px 2px #5B3A60,0 6px 0 #3E2443;animation:gtxt .55s ease-in-out infinite}
+#guide.wait .g-txt{font-size:36px}
+#guide.msg .g-hand{display:none}
+#guide.msg .g-txt{font-size:26px;animation:none;transform:translateX(-50%)}
+@keyframes gpress{0%,100%{transform:translate(14px,14px) scale(1)}50%{transform:translate(4px,4px) scale(.88)}}
+@keyframes gtxt{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.1)}}
 .seg{display:flex;background:var(--ink);border-radius:12px;padding:3px;gap:2px}
 .seg button{background:transparent;padding:9px 14px;border-radius:9px}
 .seg button.on{background:var(--ball);color:var(--ink)}
@@ -167,6 +188,7 @@ textarea{width:100%;height:180px;font:400 11px/1.4 var(--f-mono);border:2px soli
     </div>
     <div id="hud">Drag pieces in · drag space to pan · pinch to zoom</div>
     <div class="grp">
+      <div id="coinPill" aria-label="Coins"><img src="art/ui/coin.png" alt=""><b id="coinN">0</b></div>
       <button id="bWorld" class="ghost" hidden>Mode: Level</button>
       <button id="bRestart" class="ghost" hidden>Restart</button>
       <button id="bBot">Bot</button>
@@ -176,6 +198,7 @@ textarea{width:100%;height:180px;font:400 11px/1.4 var(--f-mono);border:2px soli
 
   <div id="hint" hidden>Tap anywhere to SLAM<small>slam = big bounce + turn around · slam twice to keep going</small></div>
   <div id="toast"></div>
+  <div id="guide" hidden><div class="g-txt" id="guideTxt">TAP!</div><img class="g-hand" src="art/ui/finger.png" alt=""></div>
   <div id="win" hidden><div class="w-card"><div class="w-panel">
     <img class="w-crown" src="art/ui/crown.png" alt="">
     <div class="w-lv" id="wLv">Level 1</div>
@@ -286,9 +309,10 @@ const FEEL=[
  ['deathArc','Death: pop up and fall off screen',0,1,1,'bool'],
  ['phoneFrame','Phone-size view on a computer',0,1,1,'bool'],
  ['intro','Level start: show the flag first',0,0,0,'seg'],
- ['goalArrow','Arrow to the flag when it is off screen',0,1,1,'bool']
+ ['goalArrow','Arrow to the flag when it is off screen',0,1,1,'bool'],
+ ['guide','Tap tutorial (finger) on levels with a new move',0,1,1,'bool']
 ];
-const DEF={starRule:'slams',art:'painted',anchor:'wide',bgDepth:1,gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,intro:'fly',goalArrow:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,chainReset:1,lateFair:1,v2:1,v3:1};
+const DEF={guide:1,starRule:'slams',art:'painted',anchor:'wide',bgDepth:1,gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,intro:'fly',goalArrow:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,chainReset:1,lateFair:1,v2:1,v3:1};
 const TURNS=[['every','Every slam'],['chain','Every slam after the 1st'],['second','Every 2nd slam'],['never','Never']];
 const SEGS={starRule:[['slams','Few slams'],['goals','3 goals'],['coins','Coins buy back slams']],art:[['painted','Painted (concept)'],['greybox','Greybox'],['plain','Plain (old)']],anchor:[['wide','Wide ones'],['all','All'],['none','None']],intro:[['fly','Fly from flag'],['zoom','Zoom out, then in'],['off','Off']],turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
 
@@ -398,9 +422,38 @@ function objsAround(x,y,hw,hh){
   return out;
 }
 
+// ---------- pitch mode / dev switch ----------
+let DEV=false;try{DEV=localStorage.getItem('sbl_dev')==='1'}catch(e){}
+if(/[?&]dev=1/.test(location.search))DEV=true;if(/[?&]dev=0/.test(location.search))DEV=false;
+function applyDev(){document.documentElement.classList.toggle('pitch',!DEV);const b=document.getElementById('bRestart');if(b)b.textContent=DEV?'Restart':'↻'}
+// ---------- tap tutorial (FTUE) ----------
+// On the first level that uses each new move, the bot's most forgiving tap timings guide the player:
+// time slows as a tap comes up, then freezes on the exact tick with a pressing finger until they tap.
+// Tapping off-cue turns the guide off for that try. Cleared levels stop guiding until the page reloads.
+const GUIDE_TXT={slam:'TAP to SLAM!',double:'TAP again to turn!',smash:'SLAM to smash it!',springslam:'SLAM on the spring!',tough:'SLAM it again!'};
+let GUIDE=null,liveTick=0;const guideCache=new Map(),guideDone=new Set();
+function guideMove(i){const seen=new Set();for(let j=0;j<i;j++)for(const m of (pack.levels[j].teach||[]))seen.add(m);
+  return (pack.levels[i].teach||[]).find(m=>!seen.has(m)&&GUIDE_TXT[m])||null}
+function guidePlan(lv){const k=botHashKey(lv);if(guideCache.has(k))return guideCache.get(k);let t=null;
+  try{const r=botRunSync(botSearch(lv,null,15000,8));if(r.ok){const pl=r.plans.slice().sort((a,b)=>a.filter(x=>x.k>=0).length-b.filter(x=>x.k>=0).length)[0];const tol=botTolerance(lv,pl);if(tol)t=tol.taps}}catch(e){}
+  guideCache.set(k,t);return t}
+function guideStart(){GUIDE=null;if(!feel.guide||world!=='level'||mode!=='play'||BOT.watch||BOT.busy)return;
+  const mv=guideMove(pack.cur),k=levelKey();if(!mv||guideDone.has(k))return;
+  const t=guidePlan(level);if(!t||!t.length||mode!=='play'||win||t[0]<liveTick)return;
+  GUIDE={ticks:t,i:0,move:mv,wait:false,off:false}}
+function guideLabel(){if(!GUIDE)return'';if(GUIDE.move==='double')return GUIDE.i>0?GUIDE_TXT.double:GUIDE_TXT.slam;if(GUIDE.move==='tough'&&GUIDE.i===0)return'SLAM it!';return GUIDE_TXT[GUIDE.move]||'TAP!'}
+function guideLead(){if(!GUIDE||GUIDE.off||win||deadT>0||INTRO)return 9;const t=GUIDE.ticks[GUIDE.i];return t==null?9:(t-liveTick)/120}
+function placeGuide(c,s){const el=$('guide'),d=guideLead();
+  // level 1 needs no taps: just say so for the first few seconds
+  const intro1=feel.guide&&mode==='play'&&world==='level'&&pack.cur===0&&!INTRO&&!win&&liveTick<360&&!guideDone.has(levelKey());
+  const on=mode==='play'&&(d<0.35||intro1);
+  if(!on){if(!el.hidden)el.hidden=true;return}
+  el.hidden=false;el.classList.toggle('wait',!!(GUIDE&&GUIDE.wait));el.classList.toggle('msg',d>=0.35);$('guideTxt').textContent=d<0.35?guideLabel():'Boing bounces by himself!';
+  const x=(p.x-c.x)*s+W/2,y=(p.y-c.y)*s+H/2;el.style.transform=`translate(${x+18}px,${y+20}px)`;
+  const tx=$('guideTxt'),tw=tx.offsetWidth,cx=Math.max(tw/2+10,Math.min(W-tw/2-10,x));tx.style.left=(cx-x-18)+'px'}
 // ---------- play ----------
 function startPlay(){
-  simT=0;BOT.watch=null;
+  simT=0;BOT.watch=null;if(!SIM){liveTick=0;GUIDE=null}
   rt={broken:new Set(),got:new Set(),hits:new Map(),hitT:new Map()};
   const sp=world==='level'?level.spawn:{x:0,y:-60,dir:1};
   p={x:sp.x,y:sp.y,vx:0,vy:0,dir:sp.dir||1,slam:false,wind:0,combo:0,squash:0,land:null,lastSlamT:-9,tapGap:null};
@@ -412,6 +465,7 @@ function startPlay(){
   INTRO=null;if(!SIM&&!BOT.busy&&world==='level'&&tries===1&&feel.intro!=='off')introStart();
   // work out this level's star target now (while the intro plays) so the win popup doesn't wait for it
   if(!SIM&&!BOT.busy&&world==='level'&&mode==='play'&&tries===1)setTimeout(()=>{if(mode==='play'&&!BOT.busy&&!SIM&&!win)levelPar(level)},60);
+  if(!SIM&&!BOT.busy)guideStart();
 }
 // ---------- level intro: show the flag, then bring the camera to Boing ----------
 function goalObj(){return world==='level'?level.objs.find(o=>o.type==='goal'):null}
@@ -526,6 +580,7 @@ function showBanner(){document.querySelectorAll('#wStars .w-twinkle').forEach(e=
   const wg=$('wGoal');wg.textContent=sr?sr.text:'';
   if(sr&&sr.goals){wg.textContent='';const L=['Reach the flag',nCoins>1?`All ${nCoins} coins`:nCoins?'The coin':'All coins (none here)',par===0?'No slams':`${par} slam${par===1?'':'s'} or fewer`];
     const ul=document.createElement('div');ul.className='w-goals';sr.goals.forEach((ok,i)=>{const d=document.createElement('div');d.className=ok?'ok':'no';d.textContent=(ok?'✓ ':'✗ ')+L[i];ul.appendChild(d)});wg.appendChild(ul)}
+  if(inLevel&&!SIM)guideDone.add(levelKey());
   if(inLevel&&!SIM){const k=levelKey()+'_stars',old=store.get(k)||0;if(stars>old)store.set(k,stars)}
   if(win.best||(inLevel&&win.prev==null))setTimeout(()=>{tone(1319,0,0.12,'square',0.07);tone(1760,0.1,0.3,'square',0.07)},650);
 }
@@ -605,12 +660,14 @@ function tap(){
   if(win){if(win.ready){tries=1;if(world==='level'){setLevel(pack.cur+1);toast(`Level ${pack.cur+1}: ${level.name}`)}else startPlay()}return}
   if(deadT>0) return;
   if(p.slam) return;
+  if(GUIDE&&!SIM&&!GUIDE.off){if(GUIDE.wait){GUIDE.wait=false;GUIDE.i++}else GUIDE.off=true}
   p.tapGap=simT-p.lastSlamT;
   const L=p.land;
   if(L&&!L.used&&p.vy<0&&simT-L.t<=feel.late&&!rt.broken.has(L.o.id)){L.used=true;p.land=null;doSlamBounce(L.o,nextCombo(L.prev),true);return}
   p.slam=true; p.wind=feel.windup; p.land=null;
 }
 function step(dt){
+  if(!SIM){if(GUIDE&&!GUIDE.off&&!win&&!(deadT>0)){while(GUIDE.ticks[GUIDE.i]!=null&&liveTick>=GUIDE.ticks[GUIDE.i]&&p.slam)GUIDE.i++;const t=GUIDE.ticks[GUIDE.i];if(t!=null&&liveTick>=t){GUIDE.wait=true;return}}liveTick++}
   if(BOT.watch&&!SIM)botWatchTick();
   simT+=dt;
   if(win){winStep(dt);return}
@@ -987,13 +1044,14 @@ function drawBg(c,s){
   }
   // height marks every 5 m (200 units) from start
   const base=mode==='play'?startY:(level.spawn.y+R);
+  if(!DEV&&mode==='play'){}else{
   const top=c.y-H/2/s,bot=c.y+H/2/s;
   ctx.font='500 11px "DM Mono",monospace';ctx.textBaseline='bottom';
   for(let wy=base-Math.ceil((base-bot)/200)*200;wy>top;wy-=200){
     const sy=(wy-c.y)*s+H/2,m=Math.round((base-wy)/40);
     ctx.fillStyle='rgba(24,35,58,0.08)';ctx.fillRect(0,sy,W,1);
     ctx.fillStyle='rgba(24,35,58,0.4)';ctx.fillText(`${m} m`,Math.max(12,0)+6,sy-3);
-  }
+  }}
 }
 // A small flag badge pinned to the screen edge, pointing at the flag while it is off screen.
 function drawGoalArrow(c,s){
@@ -1051,6 +1109,7 @@ function render(){
   for(const q of pops){ctx.globalAlpha=Math.min(1,q.life*1.5);const k=1+0.7*Math.pow(Math.max(0,(q.life-0.82)/0.18),2);ctx.save();ctx.translate(q.x,q.y);ctx.scale(k,k);if(q.size>30)ctx.rotate(-0.06);ctx.font=`700 ${q.size}px Fredoka,sans-serif`;ctx.lineJoin='round';ctx.lineWidth=q.size>30?9:5;ctx.strokeStyle=q.size>30?C.ink:C.paper;ctx.strokeText(q.text,0,0);ctx.fillStyle=q.size>30?C.ball:q.color;if(q.size>30){ctx.fillStyle=q.color===C.spring?C.ball:'#FFFFFF'}ctx.fillText(q.text,0,0);ctx.restore()}
   ctx.globalAlpha=1;ctx.textAlign='start';
   if(mode==='play'&&feel.goalArrow&&!win)drawGoalArrow(c,s);
+  placeGuide(c,s);
   if(flash>0&&mode==='play'){ctx.setTransform(DPR,0,0,DPR,0,0);ctx.fillStyle=`rgba(${flashRGB},${(flash*0.85).toFixed(3)})`;ctx.fillRect(0,0,W,H)}
 }
 function bounds(o){if(TYPES[o.type].pt)return o.type==='goal'?{x:o.x-10,y:o.y-44,w:50,h:80}:{x:o.x-15,y:o.y-15,w:30,h:30};return{x:o.x,y:o.y-(o.type==='spike'?10:o.type==='spring'?8:0),w:o.w,h:PH+(o.type==='spike'?10:o.type==='spring'?8:0)}}
@@ -1065,11 +1124,13 @@ function frame(now){phoneView();
   if(BOT.busy){last=now;requestAnimationFrame(frame);return}
   let dt=Math.min(0.05,(now-last)/1000);last=now;
   if(mode==='play'&&!paused&&INTRO){introTick(dt);updFx(dt)}
-  else if(mode==='play'&&!paused){let ts=1;if(win){win.real+=dt;const r=win.real;ts=r<0.1?0.04:r<0.9?0.3+0.7*(r-0.1)/0.8:1}acc+=dt*ts;while(acc>=1/120){step(1/120);acc-=1/120}updFx(dt*ts)}
+  else if(mode==='play'&&!paused){let ts=1;if(win){win.real+=dt;const r=win.real;ts=r<0.1?0.04:r<0.9?0.3+0.7*(r-0.1)/0.8:1}
+    else{const d=guideLead();if(GUIDE&&GUIDE.wait){ts=0;acc=0}else if(d<0.35)ts=0.15+0.85*Math.max(0,d)/0.35}
+    acc+=dt*ts;while(acc>=1/120){step(1/120);acc-=1/120}updFx(dt*ts)}
   else if(mode==='edit'){simT+=dt}
   flash=Math.max(0,flash-dt*2.2);
   render();
-  hudT-=dt;if(hudT<=0&&mode==='play'){hudT=0.1;const h=Math.max(0,(startY-(p.y+R))/40);
+  hudT-=dt;if(hudT<=0&&mode==='play'){hudT=0.1;{const n=world==='level'?level.objs.filter(o=>o.type==='coin').length:0,t=n?`${stats.coins}/${n}`:`${stats.coins}`,el=$('coinN');if(el.textContent!==t){const pill=$('coinPill');if(el.textContent!==''&&stats.coins>0){pill.classList.remove('bump');void pill.offsetWidth;pill.classList.add('bump')}el.textContent=t}}const h=Math.max(0,(startY-(p.y+R))/40);
     $('hud').innerHTML=`<b>Try</b> ${tries}  <b>Height</b> ${h.toFixed(0).padStart(3)} m  <b>Best</b> ${stats.best.toFixed(0)} m  <b>Coins</b> ${stats.coins}  <b>Falls</b> ${stats.falls}  <b>Turn</b> ${feel.turn==='every'?'every slam':feel.turn==='chain'?'after 1st':feel.turn==='second'?'every 2nd':'never'}`}
   requestAnimationFrame(frame);
 }
@@ -1121,7 +1182,7 @@ addEventListener('keydown',e=>{
   if(e.target.tagName==='TEXTAREA'||e.target.tagName==='INPUT')return;
   if(e.code==='Space'||e.code==='ArrowDown'||e.code==='KeyS'){e.preventDefault();tap()}
   if(e.code==='KeyR'&&mode==='play')startPlay();
-  if(e.code==='KeyE')setMode(mode==='edit'?'play':'edit');
+  if(e.code==='KeyE'&&DEV)setMode(mode==='edit'?'play':'edit');
   if((e.code==='Delete'||e.code==='Backspace')&&mode==='edit'&&sel)delSel();
 });
 
@@ -1377,7 +1438,7 @@ function botTolerance(lv,plan){
     return {taps:base.ticks,win:win_,plan:plan.slice(0,base.used||plan.length)};
   } finally {botGive(keep)}
 }
-const LOOK_ONLY=new Set(['starRule','art','bgDepth','anchor','skin','boingSize','poseBlend','tilt','squashAmt','showHitbox','zoom','look','shake','sound','bounceSfx','phoneFrame','intro','goalArrow','deathArc']);
+const LOOK_ONLY=new Set(['guide','starRule','art','bgDepth','anchor','skin','boingSize','poseBlend','tilt','squashAmt','showHitbox','zoom','look','shake','sound','bounceSfx','phoneFrame','intro','goalArrow','deathArc']);
 // like botLevelHash, but ignores Feel settings that only change the look
 function botHashKey(lv){const f={};for(const k in feel)if(!LOOK_ONLY.has(k))f[k]=feel[k];const t=JSON.stringify(lv.objs)+JSON.stringify(lv.spawn)+JSON.stringify(f);let h=0;for(let i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))|0;return h}
 function botLevelHash(lv){return JSON.stringify(lv.objs)+JSON.stringify(lv.spawn)+JSON.stringify(feel)}
@@ -1460,7 +1521,10 @@ $('bBotAll').onclick=async()=>{
 };
 window.BOT_API={searchAsync:(lv,ban,b)=>botRunAsync(botSearch(lv,ban,b||4000)),trace:botTrace,run:n=>{for(let i=0;i<n&&!win;i++)step(1/120);return{win:!!win,x:p.x,y:p.y,tries}},watch:botWatch,check:(lv,b)=>botRunSync(botCheck(lv,b)),search:(lv,ban,b)=>botRunSync(botSearch(lv,ban,b||4000)),tolerance:botTolerance,clear:()=>botCache.clear(),feel:()=>feel,setFeel:f=>{Object.assign(feel,f);botCache.clear()},campaign:()=>typeof CAMPAIGN!=='undefined'?CAMPAIGN:null};
 
-startPlay();setMode('edit');requestAnimationFrame(frame);
+startPlay();applyDev();setMode(DEV?'edit':'play');requestAnimationFrame(frame);
+// hold the level name for 1 second to show or hide the dev tools (Edit, Bot, Feel, debug line)
+{let t=0;const n=$('lvName');n.addEventListener('pointerdown',()=>{clearTimeout(t);t=setTimeout(()=>{DEV=!DEV;try{localStorage.setItem('sbl_dev',DEV?'1':'0')}catch(e){}applyDev();if(!DEV&&mode!=='play')setMode('play');toast(DEV?'Dev tools on':'Dev tools hidden')},900)});
+ for(const ev of ['pointerup','pointerleave','pointercancel'])n.addEventListener(ev,()=>clearTimeout(t))}
 CLOUD.booted=true;
 cloudBoot().catch(()=>syncNote('Changes save on this device.'));
 })();
