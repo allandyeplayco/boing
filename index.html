@@ -494,7 +494,8 @@ let AC=null;
 // Loaded as soon as the page opens, decoded once the first tap creates the audio context. Until then (or if a file
 // is missing) the old synth sounds play instead.
 const SND={},SND_RAW={},SND_FILES={slam:'slambounce',spring:'spring',oof:'oof',flag:'flag',stinger:'victory-stinger',star1:'star-1',star2:'star-2',star3:'star-3',music:'world1-theme'};
-for(const k in SND_FILES)fetch('audio/'+SND_FILES[k]+'.mp3').then(r=>r.ok?r.arrayBuffer():null).then(b=>{if(b){SND_RAW[k]=b;sndDecode()}}).catch(()=>{});
+const SND_VER=2; // bump when a sound file is replaced, so browsers fetch the new one
+for(const k in SND_FILES)fetch('audio/'+SND_FILES[k]+'.mp3?v='+SND_VER).then(r=>r.ok?r.arrayBuffer():null).then(b=>{if(b){SND_RAW[k]=b;sndDecode()}}).catch(()=>{});
 function sndDecode(){if(!AC)return;for(const k in SND_RAW){const b=SND_RAW[k];delete SND_RAW[k];
   AC.decodeAudioData(b,x=>{SND[k]=x;if(k==='music'&&musicWant)musicStart(false)},()=>{})}}
 function play(k,vol,rate,t0){const a=audio();if(!a||!SND[k])return false;try{const s=a.createBufferSource(),g=a.createGain();s.buffer=SND[k];s.playbackRate.value=rate||1;g.gain.value=vol==null?1:vol;s.connect(g).connect(a.destination);s.start(a.currentTime+(t0||0))}catch(_){return false}return true}
