@@ -302,11 +302,13 @@ const FEEL=[
  ['chainReset','Chain resets after a double',0,1,1,'bool'],
  ['fastTurn','Turning needs a fast tap',0,1,1,'bool'],
  ['fastWindow','Fast tap window after a slam',0.1,0.8,0.01,'s'],
+ ['quickTurnAny','Quick tap after a DOUBLE turns again',0,1,1,'bool'],
  ['shake','Screen shake',0,1,1,'bool'],
  ['sound','Sound',0,1,1,'bool'],
  ['music','Music',0,1,1,'bool'],
  ['musicVol','Music volume',0,1,0.05,'×'],
  ['bounceSfx','Sound on normal bounces',0,1,1,'bool'],
+ ['turnSfx','Turnaround sound',0,0,0,'seg'],
  ['restartOnDeath','Dying restarts the level',0,1,1,'bool'],
  ['deathArc','Death: pop up and fall off screen',0,1,1,'bool'],
  ['phoneFrame','Phone-size view on a computer',0,1,1,'bool'],
@@ -315,9 +317,9 @@ const FEEL=[
  ['guide','Tap tutorial (finger) on levels with a new move',0,1,1,'bool'],
  ['guideAlways','Tutorial every time (even after clearing)',0,1,1,'bool']
 ];
-const DEF={guideAlways:1,music:1,musicVol:0.5,guide:1,starRule:'slams',art:'painted',anchor:'wide',bgDepth:1,gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,intro:'fly',goalArrow:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,chainReset:1,lateFair:1,v2:1,v3:1};
+const DEF={guideAlways:1,music:1,musicVol:0.5,guide:1,starRule:'slams',art:'painted',anchor:'wide',bgDepth:1,gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,intro:'fly',goalArrow:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,quickTurnAny:1,turnSfx:'jingle',chainReset:1,lateFair:1,v2:1,v3:1};
 const TURNS=[['every','Every slam'],['chain','Every slam after the 1st'],['second','Every 2nd slam'],['never','Never']];
-const SEGS={starRule:[['slams','Few slams'],['goals','3 goals'],['coins','Coins buy back slams']],art:[['painted','Painted (concept)'],['greybox','Greybox'],['plain','Plain (old)']],anchor:[['wide','Wide ones'],['all','All'],['none','None']],intro:[['fly','Fly from flag'],['zoom','Zoom out, then in'],['off','Off']],turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
+const SEGS={starRule:[['slams','Few slams'],['goals','3 goals'],['coins','Coins buy back slams']],art:[['painted','Painted (concept)'],['greybox','Greybox'],['plain','Plain (old)']],anchor:[['wide','Wide ones'],['all','All'],['none','None']],turnSfx:[['jingle','Old DOUBLE jingle'],['whoosh','Whoosh'],['blip','Small blip'],['off','Off']],intro:[['fly','Fly from flag'],['zoom','Zoom out, then in'],['off','Off']],turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
 
 const MEM={};
 const CLOUD={kv:null,ready:false,booted:false,localDirty:false,timer:0,busy:false,again:false,ref:null};
@@ -494,7 +496,7 @@ let AC=null;
 // Loaded as soon as the page opens, decoded once the first tap creates the audio context. Until then (or if a file
 // is missing) the old synth sounds play instead.
 const SND={},SND_RAW={},SND_FILES={slam:'slambounce',spring:'spring',oof:'oof',flag:'flag',stinger:'victory-stinger',star1:'star-1',star2:'star-2',star3:'star-3',music:'world1-theme'};
-const SND_VER=2; // bump when a sound file is replaced, so browsers fetch the new one
+const SND_VER=3; // bump when a sound file is replaced, so browsers fetch the new one
 for(const k in SND_FILES)fetch('audio/'+SND_FILES[k]+'.mp3?v='+SND_VER).then(r=>r.ok?r.arrayBuffer():null).then(b=>{if(b){SND_RAW[k]=b;sndDecode()}}).catch(()=>{});
 function sndDecode(){if(!AC)return;for(const k in SND_RAW){const b=SND_RAW[k];delete SND_RAW[k];
   AC.decodeAudioData(b,x=>{SND[k]=x;if(k==='music'&&musicWant)musicStart(false)},()=>{})}}
@@ -516,6 +518,11 @@ function sfxSlam(c){
   [1,1.26,1.5,2].forEach((m,i)=>tone(root*m,0.03+i*0.05,0.18,'square',0.07));
   sweep(380,1700,0.02,0.32,'triangle',0.07);tone(root*3,0.24,0.35,'triangle',0.06);
 }
+// Turnaround sound (Allan 2026-11-16). 'jingle' is the rising notes the old synth slam played on a DOUBLE.
+function sfxTurn(){const k=feel.turnSfx;if(k==='off')return;
+  if(k==='blip'){tone(1760,0.02,0.08,'square',0.05);return}
+  if(k==='whoosh'){sweep(300,1400,0.02,0.22,'triangle',0.09);sweep(1400,500,0.2,0.16,'triangle',0.05);return}
+  const root=523;[1,1.26,1.5,2].forEach((m,i)=>tone(root*m,0.03+i*0.05,0.18,'square',0.06));tone(root*3,0.24,0.35,'triangle',0.05)}
 function sfxCoin(){tone(988,0,0.07,'square',0.06);tone(1319,0.06,0.16,'square',0.06)}
 function sfxWin(){[523,659,784,1047].forEach((f,i)=>tone(f,i*0.08,0.22,'square',0.09));[1047,1319,1568].forEach(f=>tone(f,0.34,0.9,'triangle',0.11));tone(262,0.34,0.9,'triangle',0.14)}
 // ---------- goal celebration ----------
@@ -617,6 +624,10 @@ function hitBrk(o){
   return false;
 }
 function nextCombo(c){return feel.chainReset&&c>=2?1:c+1}
+// Allan 2026-11-16: after any slam bounce, a quick tap (inside fastWindow) turns him, even right after a DOUBLE,
+// where the chain would otherwise reset to a 1st slam. That quick slam counts as another DOUBLE.
+function chainNext(c,quick){return quick&&feel.quickTurnAny&&feel.fastTurn&&feel.chainReset&&c>=2?2:nextCombo(c)}
+function quickTap(){return p.tapGap!=null&&p.tapGap<=feel.fastWindow}
 function turnsAt(c){return feel.turn==='every'||(feel.turn==='chain'&&c>=2)||(feel.turn==='second'&&c%2===0)}
 function doSlamBounce(o,combo,late){
   p.combo=combo; stats.slams++;
@@ -636,8 +647,7 @@ function doSlamBounce(o,combo,late){
   if(turn&&feel.fastTurn&&combo>=2&&!(p.tapGap!=null&&p.tapGap<=feel.fastWindow)){turn=false;slow=true}
   p.lastSlamT=simT;p.tapGap=null;
   if(slow)pop(p.x,o.y-104,'too slow · no turn',C.ink3,18);
-  else if(turn&&feel.fastTurn&&combo>=2)tone(1760,0.02,0.08,'square',0.04);
-  if(turn) p.dir*=-1;
+  if(turn){p.dir*=-1;sfxTurn()}
   p.squash=1; shakeAmt=Math.max(shakeAmt,6+combo*3);
   burst(p.x,o.y,10+combo*4,C.ink,420,6); ring(p.x,o.y,C.ink);
   if(o.type==='spring'){if(!play('spring',0.9))sweep(220,880,0,0.28,'triangle',0.1);play('slam',0.7,combo>=2?1.12:1)}
@@ -655,7 +665,7 @@ function land(o){
   p.y=o.y-R;
   if(o.type==='spike'){die('Spiked');return}
   lastLandY=o.y;
-  if(p.slam){p.slam=false;doSlamBounce(o,nextCombo(p.combo),false);p.land=null}
+  if(p.slam){p.slam=false;doSlamBounce(o,chainNext(p.combo,quickTap()),false);p.land=null}
   else{
     const prev=p.combo; p.combo=0;
     let v=feel.bounce; if(o.type==='spring'){v*=feel.springMult;springT.set(o.id,simT);if(!SIM)springHitT=simT}
@@ -683,7 +693,7 @@ function tap(){
   if(GUIDE&&!SIM&&!GUIDE.off){if(GUIDE.wait){GUIDE.wait=false;GUIDE.i++}else GUIDE.off=true}
   p.tapGap=simT-p.lastSlamT;
   const L=p.land;
-  if(L&&!L.used&&p.vy<0&&simT-L.t<=feel.late&&!rt.broken.has(L.o.id)){L.used=true;p.land=null;doSlamBounce(L.o,nextCombo(L.prev),true);return}
+  if(L&&!L.used&&p.vy<0&&simT-L.t<=feel.late&&!rt.broken.has(L.o.id)){L.used=true;p.land=null;doSlamBounce(L.o,chainNext(L.prev,quickTap()),true);return}
   p.slam=true; p.wind=feel.windup; p.land=null;
 }
 function step(dt){
@@ -1117,7 +1127,7 @@ function render(){
     trail.forEach((q,i)=>{ctx.globalAlpha=(i+1)/trail.length*0.28;ctx.fillStyle=p.combo>=2?C.accent:(feel.skin!=='ball'?'#FF6A55':C.ball);ctx.beginPath();ctx.arc(q.x,q.y,R*(0.5+0.5*(i+1)/trail.length),0,7);ctx.fill()});ctx.globalAlpha=1;
     if(!(deadT>0)||feel.skin!=='ball')drawBall(p.x,p.y,p.dir,{squash:deadT>0?0:p.squash,vy:p.squash||deadT>0?0:p.vy,pvy:p.vy,slam:p.slam&&!(deadT>0),happy:!!win,rot:win?win.rot:0,dead:deadT>0});
     if(feel.showHitbox&&!(deadT>0)){ctx.setLineDash([5,4]);ctx.strokeStyle=C.ink;ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x,p.y,R,0,7);ctx.stroke();ctx.setLineDash([])}
-    if(feel.fastTurn&&!win&&!(deadT>0)&&!p.slam&&p.combo>=1&&turnsAt(nextCombo(p.combo))){const r=simT-p.lastSlamT;if(r<feel.fastWindow){const f=1-r/feel.fastWindow;ctx.lineCap='round';ctx.strokeStyle=C.accent;ctx.lineWidth=5;ctx.beginPath();ctx.arc(p.x,p.y,R+10,-Math.PI/2,-Math.PI/2+f*Math.PI*2);ctx.stroke()}}
+    if(feel.fastTurn&&!win&&!(deadT>0)&&!p.slam&&p.combo>=1&&turnsAt(chainNext(p.combo,true))){const r=simT-p.lastSlamT;if(r<feel.fastWindow){const f=1-r/feel.fastWindow;ctx.lineCap='round';ctx.strokeStyle=C.accent;ctx.lineWidth=5;ctx.beginPath();ctx.arc(p.x,p.y,R+10,-Math.PI/2,-Math.PI/2+f*Math.PI*2);ctx.stroke()}}
   }
   for(const q of parts){ctx.globalAlpha=Math.max(0,q.life);
     if(q.ring){ctx.strokeStyle=q.color;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(q.x,q.y,q.r*1.6,q.r*0.35,0,0,7);ctx.stroke()}
@@ -1459,7 +1469,7 @@ function botTolerance(lv,plan){
     return {taps:base.ticks,win:win_,plan:plan.slice(0,base.used||plan.length)};
   } finally {botGive(keep)}
 }
-const LOOK_ONLY=new Set(['guideAlways','music','musicVol','guide','starRule','art','bgDepth','anchor','skin','boingSize','poseBlend','tilt','squashAmt','showHitbox','zoom','look','shake','sound','bounceSfx','phoneFrame','intro','goalArrow','deathArc']);
+const LOOK_ONLY=new Set(['guideAlways','music','musicVol','guide','starRule','art','bgDepth','anchor','skin','boingSize','poseBlend','tilt','squashAmt','showHitbox','zoom','look','shake','sound','bounceSfx','turnSfx','phoneFrame','intro','goalArrow','deathArc']);
 // like botLevelHash, but ignores Feel settings that only change the look
 function botHashKey(lv){const f={};for(const k in feel)if(!LOOK_ONLY.has(k))f[k]=feel[k];const t=JSON.stringify(lv.objs)+JSON.stringify(lv.spawn)+JSON.stringify(f);let h=0;for(let i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))|0;return h}
 function botLevelHash(lv){return JSON.stringify(lv.objs)+JSON.stringify(lv.spawn)+JSON.stringify(feel)}
