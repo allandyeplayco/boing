@@ -350,7 +350,7 @@ store.set('sbl_feel',feel);
 const CAMPAIGN=[
 {"name":"Hop Along","teach":[],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":600},{"id":2,"type":"coin","x":100,"y":-140},{"id":3,"type":"coin","x":300,"y":-140},{"id":4,"type":"plat","x":400,"y":60,"w":400},{"id":5,"type":"coin","x":520,"y":-80},{"id":6,"type":"plat","x":800,"y":120,"w":420},{"id":7,"type":"coin","x":740,"y":-80},{"id":8,"type":"coin","x":940,"y":20},{"id":9,"type":"goal","x":1150,"y":84}]},
 {"name":"Step Down","teach":[],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":420},{"id":2,"type":"plat","x":280,"y":140,"w":380},{"id":3,"type":"coin","x":330,"y":40},{"id":4,"type":"plat","x":720,"y":280,"w":380},{"id":5,"type":"coin","x":770,"y":180},{"id":6,"type":"plat","x":1160,"y":420,"w":380},{"id":7,"type":"coin","x":1210,"y":320},{"id":8,"type":"plat","x":1600,"y":560,"w":520},{"id":9,"type":"goal","x":2020,"y":524},{"id":10,"type":"coin","x":1660,"y":440}]},
-{"name":"Slam Up","teach":["slam"],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":1000},{"id":2,"type":"plat","x":400,"y":-260,"w":600},{"id":3,"type":"coin","x":500,"y":-360},{"id":4,"type":"coin","x":600,"y":-390},{"id":5,"type":"coin","x":700,"y":-360},{"id":6,"type":"goal","x":900,"y":-296}]},
+{"name":"Slam Up","teach":["slam"],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":1000},{"id":2,"type":"plat","x":400,"y":-260,"w":600},{"id":3,"type":"coin","x":500,"y":-380},{"id":4,"type":"coin","x":580,"y":-440},{"id":5,"type":"coin","x":640,"y":-380},{"id":6,"type":"goal","x":900,"y":-296}]},
 {"name":"Stairway","teach":["slam"],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":700},{"id":2,"type":"plat","x":300,"y":-250,"w":560},{"id":3,"type":"coin","x":560,"y":-350},{"id":4,"type":"plat","x":660,"y":-500,"w":560},{"id":5,"type":"coin","x":920,"y":-600},{"id":6,"type":"plat","x":1020,"y":-750,"w":600},{"id":7,"type":"goal","x":1500,"y":-786}]},
 {"name":"Drop In","teach":["slam"],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":500},{"id":2,"type":"plat","x":540,"y":160,"w":140},{"id":3,"type":"coin","x":610,"y":100},{"id":4,"type":"plat","x":860,"y":-80,"w":600},{"id":5,"type":"coin","x":1000,"y":-220},{"id":6,"type":"goal","x":1380,"y":-116}]},
 {"name":"Turnaround","teach":["double"],"spawn":{"x":-300,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-400,"y":0,"w":800},{"id":2,"type":"coin","x":250,"y":-240},{"id":3,"type":"plat","x":-700,"y":-300,"w":500},{"id":4,"type":"coin","x":-450,"y":-400},{"id":5,"type":"goal","x":-620,"y":-336}]},
@@ -439,8 +439,23 @@ const GUIDE_TXT={slam:'TAP to SLAM!',double:'TAP again to turn!',smash:'SLAM to 
 let GUIDE=null,liveTick=0;const guideCache=new Map(),guideDone=new Set();
 function guideMove(i){const seen=new Set();for(let j=0;j<i;j++)for(const m of (pack.levels[j].teach||[]))seen.add(m);
   return (pack.levels[i].teach||[]).find(m=>!seen.has(m)&&GUIDE_TXT[m])||null}
+// Move each tutorial tap into its EARLIEST winning window (Allan 2026-11-16: the cue should come
+// before Boing passes the step's edge, where it looks like you should act), centred in that window.
+function guideEarly(lv,plan){const keep=botBorrow(lv);
+  try{plan=plan.slice();let base=botReplay(plan);if(!base.win)return plan;
+    for(let i=0;i<plan.length;i++){if(plan[i].k<0)continue;
+      // try this tap on an earlier bounce j (dropping the no-tap bounces in between), earliest first
+      let done=false;
+      for(let j=0;j<=i&&!done;j++){if(j<i&&plan.slice(j,i).some(x=>x.k>=0))continue;
+        const pad=Array(40).fill({k:-1}),mk=k=>plan.slice(0,j).concat([{k}],plan.slice(i+1),pad);
+        const test=k=>botReplay(mk(k),base.snaps[j]).win;
+        const top=j<i?240:plan[i].k;let lo=-1;for(let k=0;k<top;k++)if(test(k)){lo=k;break}
+        if(lo<0)continue;let hi=lo;while(hi<top+60&&test(hi+1))hi++;
+        const q=mk(Math.round((lo+hi)/2)),r=botReplay(q);if(r.win){plan=q;base=r;i=j;done=true}}
+    }
+    return plan}finally{botGive(keep)}}
 function guidePlan(lv){const k=botHashKey(lv);if(guideCache.has(k))return guideCache.get(k);let t=null;
-  try{const r=botRunSync(botSearch(lv,null,15000,8));if(r.ok){const pl=r.plans.slice().sort((a,b)=>a.filter(x=>x.k>=0).length-b.filter(x=>x.k>=0).length)[0];const tol=botTolerance(lv,pl);if(tol)t=tol.taps}}catch(e){}
+  try{const r=botRunSync(botSearch(lv,null,15000,8));if(r.ok){const pl=r.plans.slice().sort((a,b)=>a.filter(x=>x.k>=0).length-b.filter(x=>x.k>=0).length)[0];const tol=botTolerance(lv,guideEarly(lv,pl));if(tol)t=tol.taps}}catch(e){}
   guideCache.set(k,t);return t}
 function guideStart(){GUIDE=null;if(!feel.guide||world!=='level'||mode!=='play'||BOT.watch||BOT.busy)return;
   const mv=guideMove(pack.cur),k=levelKey();if(!mv||(guideDone.has(k)&&!feel.guideAlways))return;
