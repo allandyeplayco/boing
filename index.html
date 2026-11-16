@@ -2,6 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
 </head><body>
+<script>/* phone frame on computers from the very first paint (the game sets it again later) */try{const f=JSON.parse(localStorage.getItem('sbl_feel')||'{}');if(f.phoneFrame!==0)document.documentElement.classList.add('phone')}catch(e){document.documentElement.classList.add('phone')}</script>
 <title>Slam Bounce Lab</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=DM+Mono:wght@400;500&display=swap">
@@ -175,9 +176,17 @@ textarea{width:100%;height:180px;font:400 11px/1.4 var(--f-mono);border:2px soli
 @media (prefers-reduced-motion:reduce){#hint,#toast{transition:none}}
 /* Phone-size view on a computer: the game sits in a portrait iPhone-sized frame (390x844) so it looks the way it does on a phone. */
 @media (min-width:600px){html.phone,html.phone body{background:#0E1524}html.phone #app{inset:0;margin:auto;width:390px;height:min(844px,calc(100vh - 24px));border-radius:32px;overflow:hidden;box-shadow:0 0 0 10px #232C3F,0 20px 60px rgba(0,0,0,.5);background:var(--sky)}}
+/* Splash: Allan's title art with a loader bar at the bottom, shown while the game loads (min time = Feel "splashMin"). */
+#splash{position:absolute;inset:0;z-index:100;overflow:hidden;background:#B9B7FC;container-type:size;transition:opacity .4s ease;touch-action:none}
+#splash img{position:absolute;left:0;top:0;width:100%;height:auto;display:block;-webkit-mask-image:linear-gradient(#000 90%,transparent);mask-image:linear-gradient(#000 90%,transparent)}
+@container (min-aspect-ratio:9/16){#splash img{height:100%;object-fit:cover;object-position:50% 20%;-webkit-mask-image:none;mask-image:none}}
+#splash.out{opacity:0;pointer-events:none}
+#splashBar{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 9%);width:min(64%,300px);height:22px;transform:translateX(-50%);box-sizing:border-box;border:3px solid #5B2A55;border-radius:14px;background:rgba(255,255,255,.6);box-shadow:0 4px 0 rgba(91,42,85,.3);padding:2px}
+#splashBar i{display:block;height:100%;width:0;border-radius:9px;background:linear-gradient(#FFE466,#FFC21A 55%,#FF9F0A);box-shadow:inset 0 2px 0 rgba(255,255,255,.65)}
 </style>
 
 <div id="app">
+  <div id="splash" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100"><img src="art/ui/splash.jpg" alt="Boing" fetchpriority="high"><div id="splashBar"><i id="splashFill"></i></div></div>
   <canvas id="cv" aria-label="Game view"></canvas>
 
   <div id="top">
@@ -312,12 +321,13 @@ const FEEL=[
  ['restartOnDeath','Dying restarts the level',0,1,1,'bool'],
  ['deathArc','Death: pop up and fall off screen',0,1,1,'bool'],
  ['phoneFrame','Phone-size view on a computer',0,1,1,'bool'],
+ ['splashMin','Splash screen: shortest time on the logo',0,5,0.25,'s'],
  ['intro','Level start: show the flag first',0,0,0,'seg'],
  ['goalArrow','Arrow to the flag when it is off screen',0,1,1,'bool'],
  ['guide','Tap tutorial (finger) on levels with a new move',0,1,1,'bool'],
  ['guideAlways','Tutorial every time (even after clearing)',0,1,1,'bool']
 ];
-const DEF={guideAlways:1,music:1,musicVol:0.5,guide:1,starRule:'slams',art:'painted',anchor:'wide',bgDepth:1,gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,intro:'fly',goalArrow:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,quickTurnAny:1,turnSfx:'jingle',chainReset:1,lateFair:1,v2:1,v3:1};
+const DEF={splashMin:2,guideAlways:1,music:1,musicVol:0.5,guide:1,starRule:'slams',art:'painted',anchor:'wide',bgDepth:1,gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,intro:'fly',goalArrow:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,quickTurnAny:1,turnSfx:'jingle',chainReset:1,lateFair:1,v2:1,v3:1};
 const TURNS=[['every','Every slam'],['chain','Every slam after the 1st'],['second','Every 2nd slam'],['never','Never']];
 const SEGS={starRule:[['slams','Few slams'],['goals','3 goals'],['coins','Coins buy back slams']],art:[['painted','Painted (concept)'],['greybox','Greybox'],['plain','Plain (old)']],anchor:[['wide','Wide ones'],['all','All'],['none','None']],turnSfx:[['jingle','Old DOUBLE jingle'],['whoosh','Whoosh'],['blip','Small blip'],['off','Off']],intro:[['fly','Fly from flag'],['zoom','Zoom out, then in'],['off','Off']],turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
 
@@ -512,7 +522,7 @@ let AC=null;
 // is missing) the old synth sounds play instead.
 const SND={},SND_RAW={},SND_FILES={slam:'slambounce',spring:'spring',oof:'oof',flag:'flag',stinger:'victory-stinger',star1:'star-1',star2:'star-2',star3:'star-3',music:'world1-theme'};
 const SND_VER=3; // bump when a sound file is replaced, so browsers fetch the new one
-for(const k in SND_FILES)fetch('audio/'+SND_FILES[k]+'.mp3?v='+SND_VER).then(r=>r.ok?r.arrayBuffer():null).then(b=>{if(b){SND_RAW[k]=b;sndDecode()}}).catch(()=>{});
+const SND_P=[];for(const k in SND_FILES)SND_P.push(fetch('audio/'+SND_FILES[k]+'.mp3?v='+SND_VER).then(r=>r.ok?r.arrayBuffer():null).then(b=>{if(b){SND_RAW[k]=b;sndDecode()}}).catch(()=>{}));
 function sndDecode(){if(!AC)return;for(const k in SND_RAW){const b=SND_RAW[k];delete SND_RAW[k];
   AC.decodeAudioData(b,x=>{SND[k]=x;if(k==='music'&&musicWant)musicStart(false)},()=>{})}}
 function play(k,vol,rate,t0){const a=audio();if(!a||!SND[k])return false;try{const s=a.createBufferSource(),g=a.createGain();s.buffer=SND[k];s.playbackRate.value=rate||1;g.gain.value=vol==null?1:vol;s.connect(g).connect(a.destination);s.start(a.currentTime+(t0||0))}catch(_){return false}return true}
@@ -697,7 +707,7 @@ function die(why){
   Object.assign(p,{x:ckpt.x,y:ckpt.y-30,vx:0,vy:0,slam:false,wind:0,combo:0,land:null});
   lastLandY=ckpt.y+R; trail=[];
 }
-function tap(){
+function tap(){if(SPLASH)return;
   if(mode!=='play'||paused||(BOT.busy&&!SIM)) return;
   if(BOT.watch&&!BOT.watch.tapping&&!win) return;
   if(!SIM){hideHint();audio();if(mode==='play'&&!win&&!musicSrc)musicStart(false)}
@@ -1159,13 +1169,34 @@ function render(){
 }
 function bounds(o){if(TYPES[o.type].pt)return o.type==='goal'?{x:o.x-10,y:o.y-44,w:50,h:80}:{x:o.x-15,y:o.y-15,w:30,h:30};return{x:o.x,y:o.y-(o.type==='spike'?10:o.type==='spring'?8:0),w:o.w,h:PH+(o.type==='spike'?10:o.type==='spring'?8:0)}}
 
+// ---------- splash + loader ----------
+// The bar follows real loading (art, Boing's Spine files, sounds, fonts), but never fills faster than Feel "splashMin"
+// seconds from page open, so the logo always shows for a moment even when everything is already cached.
+let SPLASH=true;
+function splashRun(){
+  const el=$('splash'),fill=$('splashFill');let done=0,shown=0;
+  const imgP=i=>i.complete?Promise.resolve():new Promise(r=>{i.addEventListener('load',r,{once:true});i.addEventListener('error',r,{once:true})});
+  const ui=['button','coin','crown','finger','panel','sparkle','star','star-empty','stats-bar','title'].map(n=>{const i=new Image();i.src='art/ui/'+n+'.png';return i});
+  const jobs=[...document.images,...ui,...Object.values(WIMG),...Object.values(SPR).map(s=>s.img)].map(imgP)
+    .concat(SND_P,[SPINE_P,document.fonts?document.fonts.ready:null].filter(Boolean)).map(p=>Promise.resolve(p).catch(()=>{}).then(()=>{done++}));
+  const total=jobs.length,MAXWAIT=12; // give up waiting after 12 s (a missing file never blocks play)
+  const tick=()=>{const t=performance.now()/1000,minT=Math.max(0.01,+feel.splashMin||0);
+    const real=t>MAXWAIT?1:done/total,target=Math.min(real,t/minT);
+    shown+=(target-shown)*0.18;if(target>=1&&shown>0.995)shown=1;
+    fill.style.width=(shown*100).toFixed(1)+'%';el.setAttribute('aria-valuenow',Math.round(shown*100));
+    if(shown<1){requestAnimationFrame(tick);return}
+    setTimeout(()=>{SPLASH=false;last=performance.now();el.classList.add('out');setTimeout(()=>el.remove(),450)},180)};
+  requestAnimationFrame(tick);
+}
+
 // ---------- loop ----------
 let last=performance.now(),acc=0,hudT=0;
-spineBoot();
+const SPINE_P=spineBoot();
 let phoneOn=null;
 function phoneView(){const on=!!feel.phoneFrame;if(on!==phoneOn){phoneOn=on;document.documentElement.classList.toggle('phone',on);resize()}}
 phoneView();
 function frame(now){phoneView();
+  if(SPLASH){last=now;requestAnimationFrame(frame);return} // the game waits behind the splash
   if(BOT.busy){last=now;requestAnimationFrame(frame);return}
   let dt=Math.min(0.05,(now-last)/1000);last=now;
   if(mode==='play'&&!paused&&INTRO){introTick(dt);updFx(dt)}
@@ -1484,7 +1515,7 @@ function botTolerance(lv,plan){
     return {taps:base.ticks,win:win_,plan:plan.slice(0,base.used||plan.length)};
   } finally {botGive(keep)}
 }
-const LOOK_ONLY=new Set(['guideAlways','music','musicVol','guide','starRule','art','bgDepth','anchor','skin','boingSize','poseBlend','tilt','squashAmt','showHitbox','zoom','look','shake','sound','bounceSfx','turnSfx','phoneFrame','intro','goalArrow','deathArc']);
+const LOOK_ONLY=new Set(['splashMin','guideAlways','music','musicVol','guide','starRule','art','bgDepth','anchor','skin','boingSize','poseBlend','tilt','squashAmt','showHitbox','zoom','look','shake','sound','bounceSfx','turnSfx','phoneFrame','intro','goalArrow','deathArc']);
 // like botLevelHash, but ignores Feel settings that only change the look
 function botHashKey(lv){const f={};for(const k in feel)if(!LOOK_ONLY.has(k))f[k]=feel[k];const t=JSON.stringify(lv.objs)+JSON.stringify(lv.spawn)+JSON.stringify(f);let h=0;for(let i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))|0;return h}
 function botLevelHash(lv){return JSON.stringify(lv.objs)+JSON.stringify(lv.spawn)+JSON.stringify(feel)}
@@ -1568,6 +1599,7 @@ $('bBotAll').onclick=async()=>{
 window.BOT_API={searchAsync:(lv,ban,b)=>botRunAsync(botSearch(lv,ban,b||4000)),trace:botTrace,run:n=>{for(let i=0;i<n&&!win;i++)step(1/120);return{win:!!win,x:p.x,y:p.y,tries}},watch:botWatch,check:(lv,b)=>botRunSync(botCheck(lv,b)),search:(lv,ban,b)=>botRunSync(botSearch(lv,ban,b||4000)),tolerance:botTolerance,clear:()=>botCache.clear(),feel:()=>feel,setFeel:f=>{Object.assign(feel,f);botCache.clear()},campaign:()=>typeof CAMPAIGN!=='undefined'?CAMPAIGN:null};
 
 startPlay();applyDev();setMode(DEV?'edit':'play');requestAnimationFrame(frame);
+splashRun();
 // hold the level name for 1 second to show or hide the dev tools (Edit, Bot, Feel, debug line)
 {let t=0;const n=$('lvName');n.addEventListener('pointerdown',()=>{clearTimeout(t);t=setTimeout(()=>{DEV=!DEV;try{localStorage.setItem('sbl_dev',DEV?'1':'0')}catch(e){}applyDev();if(!DEV&&mode!=='play')setMode('play');toast(DEV?'Dev tools on':'Dev tools hidden')},900)});
  for(const ev of ['pointerup','pointerleave','pointercancel'])n.addEventListener(ev,()=>clearTimeout(t))}
