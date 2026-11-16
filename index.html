@@ -65,6 +65,7 @@ html.pitch #bRestart{width:42px;height:42px;padding:0;border-radius:50%;font:700
 #tray button{background:var(--ink-2);padding:9px 11px}
 #tray button.on{background:var(--accent)}
 #tray button.warn{background:var(--spike)}
+#tray button:disabled{opacity:.35;cursor:default}
 #selbar{background:#22304C;border-radius:12px;padding:6px 8px}
 #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:50;opacity:.9;transform:translate(-50%,-50%)}
 #ghost svg{width:72px;height:42px}
@@ -231,6 +232,8 @@ textarea{width:100%;height:180px;font:400 11px/1.4 var(--f-mono);border:2px soli
     </div>
     <div id="palette"></div>
     <div class="row">
+      <button id="bUndo" aria-label="Undo" disabled>↶ Undo</button>
+      <button id="bRedo" aria-label="Redo" disabled>↷ Redo</button>
       <button id="bSnap" class="on">Snap 20</button>
       <button id="bCode">Level code</button>
       <button id="bSample">Reset to starter</button>
@@ -388,9 +391,17 @@ if(!pack||!Array.isArray(pack.levels)){pack={cur:0,camp:CAMP_VER,levels:[]};for(
 while(pack.levels.length<NLEV)pack.levels.push(starter(pack.levels.length));
 let level=pack.levels[pack.cur]||pack.levels[0];
 let nextId=level.objs.reduce((m,o)=>Math.max(m,+o.id||0),0);
-const saveLevel=()=>{level.name=level.name||pack.levels[pack.cur].name||('Level '+(pack.cur+1));pack.levels[pack.cur]=level;store.set('sbl_pack',pack)};
+// ---------- editor undo / redo ----------
+// Every editor change ends in saveLevel(), so each call is one undo step. History is kept per level slot until the page reloads.
+const UNDO={};const undoSt=()=>UNDO[pack.cur]||(UNDO[pack.cur]={u:[],r:[],last:JSON.stringify(level)});
+function undoBtns(){const st=undoSt(),u=document.getElementById('bUndo'),r=document.getElementById('bRedo');if(u)u.disabled=!st.u.length;if(r)r.disabled=!st.r.length}
+const saveLevel=()=>{level.name=level.name||pack.levels[pack.cur].name||('Level '+(pack.cur+1));pack.levels[pack.cur]=level;store.set('sbl_pack',pack);
+  const st=undoSt(),now=JSON.stringify(level);if(now!==st.last){st.u.push(st.last);if(st.u.length>100)st.u.shift();st.r=[];st.last=now}undoBtns()};
+function undoStep(back){const st=undoSt(),from=back?st.u:st.r,to=back?st.r:st.u;if(!from.length){toast(back?'Nothing to undo':'Nothing to redo');return}
+  to.push(JSON.stringify(level));level=JSON.parse(from.pop());st.last=JSON.stringify(level);pack.levels[pack.cur]=level;store.set('sbl_pack',pack);
+  nextId=level.objs.reduce((m,o)=>Math.max(m,+o.id||0),0);sel=null;if(typeof showSel==='function')showSel();lvLabel();undoBtns();toast(back?'Undo':'Redo')}
 function lvLabel(){const el=document.getElementById('lvName');if(el)el.textContent=`${pack.cur+1}/${NLEV} · ${level.name||'Level'}`}
-function setLevel(i){pack.cur=((i%NLEV)+NLEV)%NLEV;level=pack.levels[pack.cur];nextId=level.objs.reduce((m,o)=>Math.max(m,+o.id||0),0);sel=null;if(typeof showSel==='function')showSel();store.set('sbl_pack',pack);lvLabel();if(typeof findSpawn==='function')findSpawn();if(mode==='play'){tries=1;startPlay()}}
+function setLevel(i){pack.cur=((i%NLEV)+NLEV)%NLEV;level=pack.levels[pack.cur];undoBtns();nextId=level.objs.reduce((m,o)=>Math.max(m,+o.id||0),0);sel=null;if(typeof showSel==='function')showSel();store.set('sbl_pack',pack);lvLabel();if(typeof findSpawn==='function')findSpawn();if(mode==='play'){tries=1;startPlay()}}
 
 // ---------- state ----------
 let mode='edit', world='level', paused=false;
@@ -1260,6 +1271,7 @@ addEventListener('keydown',e=>{
   if(e.code==='KeyR'&&mode==='play')startPlay();
   if(e.code==='KeyE'&&DEV)setMode(mode==='edit'?'play':'edit');
   if((e.code==='Delete'||e.code==='Backspace')&&mode==='edit'&&sel)delSel();
+  if((e.ctrlKey||e.metaKey)&&mode==='edit'&&(e.code==='KeyZ'||e.code==='KeyY')){e.preventDefault();undoStep(e.code==='KeyZ'&&!e.shiftKey)}
 });
 
 // ---------- palette ----------
@@ -1297,6 +1309,7 @@ function lookLabel(){const b=$('bLook');b.hidden=!sel||!LANDABLE[sel.type]||sel.
 $('bLook').onclick=()=>{const i=LOOKS.findIndex(l=>l[0]===(sel.look||'auto'));const v=LOOKS[(i+1)%LOOKS.length][0];if(v==='auto')delete sel.look;else sel.look=v;lookLabel();saveLevel()};
 function delSel(){level.objs=level.objs.filter(o=>o!==sel);sel=null;showSel();saveLevel()}
 $('bDel').onclick=delSel;
+$('bUndo').onclick=()=>undoStep(true);$('bRedo').onclick=()=>undoStep(false);
 $('wMinus').onclick=()=>{sel.w=Math.max(40,sel.w-20);saveLevel()};
 $('wPlus').onclick=()=>{sel.w+=20;saveLevel()};
 $('bDup').onclick=()=>{const o={...sel,id:++nextId,x:sel.x+(sel.w?sel.w+40:60)};level.objs.push(o);sel=o;showSel();saveLevel()};
@@ -1361,6 +1374,7 @@ function applyAll(){
   if(!pk){pack={cur:0,camp:CAMP_VER,levels:[]};for(let i=0;i<NLEV;i++)pack.levels.push(starter(i));store.set('sbl_pack',pack)}
   else if(pk&&Array.isArray(pk.levels)&&pk.levels.length){pack=pk;while(pack.levels.length<NLEV)pack.levels.push(starter(pack.levels.length));if(!(pack.cur>=0&&pack.cur<NLEV))pack.cur=0}
   level=pack.levels[pack.cur];nextId=level.objs.reduce((m,o)=>Math.max(m,+o.id||0),0);
+  for(const k in UNDO)delete UNDO[k];undoBtns();
   sel=null;showSel();syncFeel();lvLabel();findSpawn();if(mode==='play'){tries=1;startPlay()}
 }
 async function cloudBoot(){
@@ -1598,7 +1612,7 @@ $('bBotAll').onclick=async()=>{
 };
 window.BOT_API={searchAsync:(lv,ban,b)=>botRunAsync(botSearch(lv,ban,b||4000)),trace:botTrace,run:n=>{for(let i=0;i<n&&!win;i++)step(1/120);return{win:!!win,x:p.x,y:p.y,tries}},watch:botWatch,check:(lv,b)=>botRunSync(botCheck(lv,b)),search:(lv,ban,b)=>botRunSync(botSearch(lv,ban,b||4000)),tolerance:botTolerance,clear:()=>botCache.clear(),feel:()=>feel,setFeel:f=>{Object.assign(feel,f);botCache.clear()},campaign:()=>typeof CAMPAIGN!=='undefined'?CAMPAIGN:null};
 
-startPlay();applyDev();setMode(DEV?'edit':'play');requestAnimationFrame(frame);
+startPlay();applyDev();setMode(DEV?'edit':'play');requestAnimationFrame(frame);undoBtns();
 splashRun();
 // hold the level name for 1 second to show or hide the dev tools (Edit, Bot, Feel, debug line)
 {let t=0;const n=$('lvName');n.addEventListener('pointerdown',()=>{clearTimeout(t);t=setTimeout(()=>{DEV=!DEV;try{localStorage.setItem('sbl_dev',DEV?'1':'0')}catch(e){}applyDev();if(!DEV&&mode!=='play')setMode('play');toast(DEV?'Dev tools on':'Dev tools hidden')},900)});
