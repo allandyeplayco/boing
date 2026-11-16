@@ -45,6 +45,9 @@ html.pitch #bRestart{width:42px;height:42px;padding:0;border-radius:50%;font:700
 #guide.wait .g-txt{font-size:36px}
 #guide.msg .g-hand{display:none}
 #guide.msg .g-txt{font-size:26px;animation:none;transform:translateX(-50%)}
+#guide.dbl .g-hand{animation:gpress2 .8s ease-in-out infinite}
+#guide.fast .g-hand{animation-duration:.25s}
+@keyframes gpress2{0%,40%,100%{transform:translate(14px,14px) scale(1)}10%,30%{transform:translate(4px,4px) scale(.88)}20%{transform:translate(12px,12px) scale(.98)}}
 @keyframes gpress{0%,100%{transform:translate(14px,14px) scale(1)}50%{transform:translate(4px,4px) scale(.88)}}
 @keyframes gtxt{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.1)}}
 .seg{display:flex;background:var(--ink);border-radius:12px;padding:3px;gap:2px}
@@ -328,11 +331,12 @@ const FEEL=[
  ['intro','Level start: show the flag first',0,0,0,'seg'],
  ['goalArrow','Arrow to the flag when it is off screen',0,1,1,'bool'],
  ['guide','Tap tutorial (finger) on levels with a new move',0,1,1,'bool'],
- ['guideAlways','Tutorial every time (even after clearing)',0,1,1,'bool']
+ ['guideAlways','Tutorial every time (even after clearing)',0,1,1,'bool'],
+ ['guideDouble','Double tutorial',0,0,0,'seg']
 ];
-const DEF={splashMin:2,guideAlways:1,music:1,musicVol:0.5,guide:1,starRule:'slams',art:'painted',anchor:'wide',bgDepth:1,gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,intro:'fly',goalArrow:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,quickTurnAny:1,turnSfx:'jingle',chainReset:1,lateFair:1,v2:1,v3:1};
+const DEF={guideDouble:'rhythm',splashMin:2,guideAlways:1,music:1,musicVol:0.5,guide:1,starRule:'slams',art:'painted',anchor:'wide',bgDepth:1,gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,intro:'fly',goalArrow:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,quickTurnAny:1,turnSfx:'jingle',chainReset:1,lateFair:1,v2:1,v3:1};
 const TURNS=[['every','Every slam'],['chain','Every slam after the 1st'],['second','Every 2nd slam'],['never','Never']];
-const SEGS={starRule:[['slams','Few slams'],['goals','3 goals'],['coins','Coins buy back slams']],art:[['painted','Painted (concept)'],['greybox','Greybox'],['plain','Plain (old)']],anchor:[['wide','Wide ones'],['all','All'],['none','None']],turnSfx:[['jingle','Old DOUBLE jingle'],['whoosh','Whoosh'],['blip','Small blip'],['off','Off']],intro:[['fly','Fly from flag'],['zoom','Zoom out, then in'],['off','Off']],turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
+const SEGS={guideDouble:[['rhythm','Tap-tap (one stop)'],['steps','Stop for each tap']],starRule:[['slams','Few slams'],['goals','3 goals'],['coins','Coins buy back slams']],art:[['painted','Painted (concept)'],['greybox','Greybox'],['plain','Plain (old)']],anchor:[['wide','Wide ones'],['all','All'],['none','None']],turnSfx:[['jingle','Old DOUBLE jingle'],['whoosh','Whoosh'],['blip','Small blip'],['off','Off']],intro:[['fly','Fly from flag'],['zoom','Zoom out, then in'],['off','Off']],turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
 
 const MEM={};
 const CLOUD={kv:null,ready:false,booted:false,localDirty:false,timer:0,busy:false,again:false,ref:null};
@@ -366,7 +370,7 @@ const CAMPAIGN=[
 {"name":"Slam Up","teach":["slam"],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":1000},{"id":2,"type":"plat","x":400,"y":-260,"w":600},{"id":3,"type":"coin","x":500,"y":-380},{"id":4,"type":"coin","x":580,"y":-440},{"id":5,"type":"coin","x":640,"y":-380},{"id":6,"type":"goal","x":900,"y":-296}]},
 {"name":"Stairway","teach":["slam"],"spawn":{"x":-140,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":760},{"id":2,"type":"plat","x":260,"y":-240,"w":700},{"id":3,"type":"coin","x":360,"y":-160},{"id":4,"type":"plat","x":660,"y":-500,"w":560},{"id":5,"type":"coin","x":740,"y":-420},{"id":6,"type":"plat","x":1020,"y":-750,"w":600},{"id":7,"type":"goal","x":1500,"y":-786},{"id":8,"type":"coin","x":1160,"y":-800},{"id":9,"type":"coin","x":1220,"y":-820},{"id":10,"type":"coin","x":1100,"y":-680}]},
 {"name":"Drop In","teach":["slam"],"spawn":{"x":-60,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":500},{"id":2,"type":"plat","x":540,"y":160,"w":140},{"id":3,"type":"coin","x":660,"y":100},{"id":4,"type":"plat","x":840,"y":-80,"w":600},{"id":5,"type":"coin","x":1020,"y":-220},{"id":6,"type":"goal","x":1380,"y":-116},{"id":7,"type":"coin","x":280,"y":-80},{"id":8,"type":"coin","x":1240,"y":-220}]},
-{"name":"Turnaround","teach":["double"],"spawn":{"x":-300,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-400,"y":0,"w":800},{"id":2,"type":"coin","x":250,"y":-240},{"id":3,"type":"plat","x":-700,"y":-300,"w":500},{"id":4,"type":"coin","x":-450,"y":-400},{"id":5,"type":"goal","x":-620,"y":-336}]},
+{"name":"Turnaround","teach":["double"],"spawn":{"x":-480,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-540,"y":20,"w":800},{"id":2,"type":"coin","x":250,"y":-240},{"id":3,"type":"plat","x":-700,"y":-300,"w":500},{"id":4,"type":"coin","x":-450,"y":-400},{"id":5,"type":"goal","x":-620,"y":-336},{"id":6,"type":"coin","x":-240,"y":-400}]},
 {"name":"Switchback","teach":["double"],"spawn":{"x":-200,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-300,"y":0,"w":800},{"id":2,"type":"plat","x":-560,"y":-300,"w":660},{"id":3,"type":"coin","x":-200,"y":-400},{"id":4,"type":"plat","x":-200,"y":-600,"w":660},{"id":5,"type":"coin","x":200,"y":-700},{"id":6,"type":"plat","x":-560,"y":-900,"w":660},{"id":7,"type":"goal","x":-480,"y":-936}]},
 {"name":"Breakers","teach":["smash"],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":500},{"id":2,"type":"brk","x":300,"y":0,"w":700},{"id":3,"type":"coin","x":650,"y":-100},{"id":4,"type":"plat","x":300,"y":320,"w":680},{"id":5,"type":"coin","x":600,"y":240},{"id":6,"type":"goal","x":900,"y":284}]},
 {"name":"Smash Stack","teach":["smash"],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":400},{"id":2,"type":"brk","x":200,"y":0,"w":800},{"id":3,"type":"brk","x":200,"y":200,"w":800},{"id":4,"type":"brk","x":200,"y":400,"w":800},{"id":5,"type":"coin","x":500,"y":140},{"id":6,"type":"coin","x":500,"y":340},{"id":7,"type":"plat","x":200,"y":600,"w":800},{"id":8,"type":"goal","x":900,"y":564}]},
@@ -462,12 +466,24 @@ function guideMove(i){const seen=new Set();for(let j=0;j<i;j++)for(const m of (p
   return (pack.levels[i].teach||[]).find(m=>!seen.has(m)&&GUIDE_TXT[m])||null}
 // Move each tutorial tap into its EARLIEST winning window (Allan 2026-11-16: the cue should come
 // before Boing passes the step's edge, where it looks like you should act), centred in that window.
-function guideEarly(lv,plan){const keep=botBorrow(lv);
+// Double tutorial (Allan 2026-11-16): Boing lands and bounces once before any cue (no cue the moment the level starts), and the
+// player learns the real rhythm: SLAM on the way down, then a quick TAP right after he bounces off it. Grid-search the first tap
+// (late in the first bounce) and the quick second tap, and pick the pair with the most room for error in both.
+function guideDoublePlan(lv){const keep=botBorrow(lv);
+  try{const A=[],K1=[],K2=[];for(let k=40;k<=130;k+=2)K1.push(k);for(let k=0;k<=45;k++)K2.push(k);
+    const pad=Array(40).fill({k:-1}),ok=(a,b)=>botReplay([{k:-1},{k:a},{k:b}].concat(pad)).win;
+    for(let i=0;i<K1.length;i++){A[i]=[];for(let j=0;j<K2.length;j++)A[i][j]=ok(K1[i],K2[j])}
+    const run=(i,j,di,dj)=>{let n=0;while(A[i+di*(n+1)]&&A[i+di*(n+1)][j+dj*(n+1)])n++;return n};
+    let best=null,bm=-1;for(let i=0;i<K1.length;i++)for(let j=0;j<K2.length;j++)if(A[i][j]){
+      const m=Math.min(run(i,j,1,0),run(i,j,-1,0),2*run(i,j,0,1),2*run(i,j,0,-1)); // K1 steps are 2 ticks
+      if(m>bm){bm=m;best=[K1[i],K2[j]]}}
+    return best?[{k:-1},{k:best[0]},{k:best[1]}].concat(pad):null}finally{botGive(keep)}}
+function guideEarly(lv,plan){const skip=0;const keep=botBorrow(lv);
   try{plan=plan.slice();let base=botReplay(plan);if(!base.win)return plan;
     for(let i=0;i<plan.length;i++){if(plan[i].k<0)continue;
       // try this tap on an earlier bounce j (dropping the no-tap bounces in between), earliest first
       let done=false;
-      for(let j=0;j<=i&&!done;j++){if(j<i&&plan.slice(j,i).some(x=>x.k>=0))continue;
+      for(let j=Math.min(i,skip);j<=i&&!done;j++){if(j<i&&plan.slice(j,i).some(x=>x.k>=0))continue;
         const pad=Array(40).fill({k:-1}),mk=k=>plan.slice(0,j).concat([{k}],plan.slice(i+1),pad);
         const test=k=>botReplay(mk(k),base.snaps[j]).win;
         const top=j<i?240:plan[i].k;let lo=-1;for(let k=0;k<top;k++)if(test(k)){lo=k;break}
@@ -475,21 +491,32 @@ function guideEarly(lv,plan){const keep=botBorrow(lv);
         const q=mk(Math.round((lo+hi)/2)),r=botReplay(q);if(r.win){plan=q;base=r;i=j;done=true}}
     }
     return plan}finally{botGive(keep)}}
-function guidePlan(lv){const k=botHashKey(lv);if(guideCache.has(k))return guideCache.get(k);let t=null;
-  try{const r=botRunSync(botSearch(lv,null,15000,8));if(r.ok){const pl=r.plans.slice().sort((a,b)=>a.filter(x=>x.k>=0).length-b.filter(x=>x.k>=0).length)[0];const tol=botTolerance(lv,guideEarly(lv,pl));if(tol)t=tol.taps}}catch(e){}
+function guidePlan(lv,mv){const k=botHashKey(lv)+(mv||'');if(guideCache.has(k))return guideCache.get(k);let t=null;
+  if(mv==='double'&&feel.guideDouble!=='steps')try{const pl=guideDoublePlan(lv),tol=pl&&botTolerance(lv,pl);
+    if(tol&&tol.taps.length===2){t={ticks:tol.taps,late:tol.win.map(w=>w.late),early:tol.win.map(w=>w.early),ms:Math.min(...tol.win.map(w=>w.ms))};guideCache.set(k,t);return t}}catch(e){}
+  try{let r=botRunSync(botSearch(lv,null,15000,8));
+    if(r.ok){const nt=pl=>pl.filter(x=>x.k>=0).length,few=Math.min(...r.plans.map(nt));let best=null,bestMs=-1;
+      // among the plans with the fewest taps, teach the most forgiving one (widest tightest-tap window)
+      for(const pl of r.plans.filter(pl=>nt(pl)===few)){const tol=botTolerance(lv,guideEarly(lv,pl));if(!tol)continue;const ms=Math.min(...tol.win.map(w=>w.ms));if(ms>bestMs){bestMs=ms;best=tol}}
+      if(best)t={ticks:best.taps,late:best.win.map(w=>w.late),early:best.win.map(w=>w.early),ms:bestMs}}}catch(e){}
   guideCache.set(k,t);return t}
+const guideMoveOf=lv=>(lv.teach||[]).includes('double')?'double':null; // test hook only
 function guideStart(){GUIDE=null;if(!feel.guide||world!=='level'||mode!=='play'||BOT.watch||BOT.busy)return;
   const mv=guideMove(pack.cur),k=levelKey();if(!mv||(guideDone.has(k)&&!feel.guideAlways))return;
-  const t=guidePlan(level);if(!t||!t.length||mode!=='play'||win||t[0]<liveTick)return;
-  GUIDE={ticks:t,i:0,move:mv,wait:false,off:false}}
-function guideLabel(){if(!GUIDE)return'';if(GUIDE.move==='double')return GUIDE.i>0?GUIDE_TXT.double:GUIDE_TXT.slam;if(GUIDE.move==='tough'&&GUIDE.i===0)return'SLAM it!';return GUIDE_TXT[GUIDE.move]||'TAP!'}
+  const g=guidePlan(level,mv);if(!g||!g.ticks.length||mode!=='play'||win||g.ticks[0]<liveTick)return;
+  const t=g.ticks.slice();GUIDE={ticks:t,late:g.late,early:g.early,i:0,move:mv,wait:false,off:false,pair:new Set(),free:new Set()};
+  // Feel "Double tutorial" = tap-tap (Allan 2026-11-16): the quick turning tap after a slam doesn't freeze. The game stops once
+  // on the first tap of the pair ("TAP TAP!"), then runs at full speed so the player feels the rhythm, with the finger showing.
+  if(mv==='double'&&feel.guideDouble!=='steps')for(let i=1;i<t.length;i++)if(t[i]-t[i-1]<=GUIDE_PAIR&&!GUIDE.free.has(i-1)){GUIDE.pair.add(i-1);GUIDE.free.add(i)}}
+const GUIDE_PAIR=90; // two tutorial taps closer than this (ticks, 0.75 s) count as one tap-tap
+function guideLabel(){if(!GUIDE)return'';if(GUIDE.pair.has(GUIDE.i))return'TAP TAP!';if(GUIDE.free.has(GUIDE.i))return'TAP!';if(GUIDE.move==='double')return GUIDE.i>0?GUIDE_TXT.double:GUIDE_TXT.slam;if(GUIDE.move==='tough'&&GUIDE.i===0)return'SLAM it!';return GUIDE_TXT[GUIDE.move]||'TAP!'}
 function guideLead(){if(!GUIDE||GUIDE.off||win||deadT>0||INTRO)return 9;const t=GUIDE.ticks[GUIDE.i];return t==null?9:(t-liveTick)/120}
 function placeGuide(c,s){const el=$('guide'),d=guideLead();
   // level 1 needs no taps: just say so for the first few seconds
   const intro1=feel.guide&&mode==='play'&&world==='level'&&pack.cur===0&&!INTRO&&!win&&liveTick<360&&(feel.guideAlways||!guideDone.has(levelKey()));
   const on=mode==='play'&&(d<0.35||intro1);
   if(!on){if(!el.hidden)el.hidden=true;return}
-  el.hidden=false;el.classList.toggle('wait',!!(GUIDE&&GUIDE.wait));el.classList.toggle('msg',d>=0.35);$('guideTxt').textContent=d<0.35?guideLabel():'Boing bounces by himself!';
+  el.hidden=false;el.classList.toggle('wait',!!(GUIDE&&GUIDE.wait));el.classList.toggle('dbl',!!(GUIDE&&GUIDE.pair.has(GUIDE.i)));el.classList.toggle('fast',!!(GUIDE&&GUIDE.free.has(GUIDE.i)));el.classList.toggle('msg',d>=0.35);$('guideTxt').textContent=d<0.35?guideLabel():'Boing bounces by himself!';
   const x=(p.x-c.x)*s+W/2,y=(p.y-c.y)*s+H/2;el.style.transform=`translate(${x+18}px,${y+20}px)`;
   const tx=$('guideTxt'),tw=tx.offsetWidth,cx=Math.max(tw/2+10,Math.min(W-tw/2-10,x));tx.style.left=(cx-x-18)+'px'}
 // ---------- play ----------
@@ -726,14 +753,18 @@ function tap(){if(SPLASH&&!SIM)return; // ignore real taps during the splash (th
   if(win){if(win.ready){tries=1;if(world==='level'){setLevel(pack.cur+1);toast(`Level ${pack.cur+1}: ${level.name}`)}else startPlay()}return}
   if(deadT>0) return;
   if(p.slam) return;
-  if(GUIDE&&!SIM&&!GUIDE.off){if(GUIDE.wait){GUIDE.wait=false;GUIDE.i++}else GUIDE.off=true}
+  if(GUIDE&&!SIM&&!GUIDE.off){if(GUIDE.wait){GUIDE.wait=false;GUIDE.i++}
+    else if(GUIDE.free.has(GUIDE.i)){const i=GUIDE.i,d=liveTick-GUIDE.ticks[i];
+      // inside the bot's winning window: keep guiding (later cues shift by the same amount); outside it: guide off for this try
+      if(d>=-(GUIDE.early[i]||0)&&d<=(GUIDE.late[i]||0)){GUIDE.i++;for(let j=GUIDE.i;j<GUIDE.ticks.length;j++)GUIDE.ticks[j]+=d}else GUIDE.off=true}
+    else GUIDE.off=true}
   p.tapGap=simT-p.lastSlamT;
   const L=p.land;
   if(L&&!L.used&&p.vy<0&&simT-L.t<=feel.late&&!rt.broken.has(L.o.id)){L.used=true;p.land=null;doSlamBounce(L.o,chainNext(L.prev,quickTap()),true);return}
   p.slam=true; p.wind=feel.windup; p.land=null;
 }
 function step(dt){
-  if(!SIM){if(GUIDE&&!GUIDE.off&&!win&&!(deadT>0)){while(GUIDE.ticks[GUIDE.i]!=null&&liveTick>=GUIDE.ticks[GUIDE.i]&&p.slam)GUIDE.i++;const t=GUIDE.ticks[GUIDE.i];if(t!=null&&liveTick>=t){GUIDE.wait=true;return}}liveTick++}
+  if(!SIM){if(GUIDE&&!GUIDE.off&&!win&&!(deadT>0)){while(GUIDE.ticks[GUIDE.i]!=null&&liveTick>=GUIDE.ticks[GUIDE.i]&&p.slam)GUIDE.i++;const t=GUIDE.ticks[GUIDE.i];if(t!=null&&GUIDE.free.has(GUIDE.i)){if(liveTick>t+(GUIDE.late[GUIDE.i]||0)){GUIDE.off=true;toast('Tap again faster to turn!')}}else if(t!=null&&liveTick>=t){GUIDE.wait=true;return}}liveTick++}
   if(BOT.watch&&!SIM)botWatchTick();
   simT+=dt;
   if(win){winStep(dt);return}
@@ -1212,7 +1243,7 @@ function frame(now){phoneView();
   let dt=Math.min(0.05,(now-last)/1000);last=now;
   if(mode==='play'&&!paused&&INTRO){introTick(dt);updFx(dt)}
   else if(mode==='play'&&!paused){let ts=1;if(win){win.real+=dt;const r=win.real;ts=r<0.1?0.04:r<0.9?0.3+0.7*(r-0.1)/0.8:1}
-    else{const d=guideLead();if(GUIDE&&GUIDE.wait){ts=0;acc=0}else if(d<0.35)ts=0.15+0.85*Math.max(0,d)/0.35}
+    else{const d=guideLead();if(GUIDE&&GUIDE.wait){ts=0;acc=0}else if(d<0.35&&!GUIDE.free.has(GUIDE.i))ts=0.15+0.85*Math.max(0,d)/0.35}
     acc+=dt*ts;while(acc>=1/120){step(1/120);acc-=1/120}updFx(dt*ts)}
   else if(mode==='edit'){simT+=dt}
   flash=Math.max(0,flash-dt*2.2);
@@ -1437,7 +1468,7 @@ function botStart(){startPlay();INTRO=null;botT=0;parts=[];pops=[];trail=[]}
 // Search for a winning tap plan. A plan is a list of steps: after each landing, either
 // {k:n} = tap n ticks later, or {k:-1} = no tap until the next landing.
 // Yields now and then so the page stays responsive. Result in the returned object.
-function* botSearch(lv,ban,budget,want){
+function* botSearch(lv,ban,budget,want,skip){skip=skip||0; // skip = landings at the start with no tap allowed (tutorial: never cue during the drop from the spawn)
   const keep=botBorrow(lv),out={ok:false,plan:null,plans:[],nodes:0,full:false};want=want||1;
   try{
     botStart();
@@ -1464,7 +1495,7 @@ function* botSearch(lv,ban,budget,want){
       botLoad(n.s);
       // Walk forward with no tap; at every BOT_G ticks, try a tap there as a branch.
       for(let k=0;k<BOT_MAXEV;k++){
-        if(k%BOT_G===0&&!p.slam){
+        if(k%BOT_G===0&&!p.slam&&n.plan.length>=skip){
           const s=botSnap();
           if(botTap()){const u=p.slam?botAdvance():botUsed('event',s.p.dir,s.stats.slams,s.rt.broken.size);if(child(n,{k},u))return out}
           botLoad(s);
@@ -1529,7 +1560,7 @@ function botTolerance(lv,plan){
     return {taps:base.ticks,win:win_,plan:plan.slice(0,base.used||plan.length)};
   } finally {botGive(keep)}
 }
-const LOOK_ONLY=new Set(['splashMin','guideAlways','music','musicVol','guide','starRule','art','bgDepth','anchor','skin','boingSize','poseBlend','tilt','squashAmt','showHitbox','zoom','look','shake','sound','bounceSfx','turnSfx','phoneFrame','intro','goalArrow','deathArc']);
+const LOOK_ONLY=new Set(['guideDouble','splashMin','guideAlways','music','musicVol','guide','starRule','art','bgDepth','anchor','skin','boingSize','poseBlend','tilt','squashAmt','showHitbox','zoom','look','shake','sound','bounceSfx','turnSfx','phoneFrame','intro','goalArrow','deathArc']);
 // like botLevelHash, but ignores Feel settings that only change the look
 function botHashKey(lv){const f={};for(const k in feel)if(!LOOK_ONLY.has(k))f[k]=feel[k];const t=JSON.stringify(lv.objs)+JSON.stringify(lv.spawn)+JSON.stringify(f);let h=0;for(let i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))|0;return h}
 function botLevelHash(lv){return JSON.stringify(lv.objs)+JSON.stringify(lv.spawn)+JSON.stringify(feel)}
@@ -1610,7 +1641,7 @@ $('bBotAll').onclick=async()=>{
   const bad=botRes.filter(r=>r&&(!r.ok||r.shortcuts.length)).length;
   $('botMsg').textContent=`Done in ${Math.round((performance.now()-t)/1000)} s. `+(bad?`${bad} level${bad>1?'s need':' needs'} a look.`:'Every level can be won, and no shortcuts found.');
 };
-window.BOT_API={searchAsync:(lv,ban,b)=>botRunAsync(botSearch(lv,ban,b||4000)),trace:botTrace,run:n=>{for(let i=0;i<n&&!win;i++)step(1/120);return{win:!!win,x:p.x,y:p.y,tries}},watch:botWatch,check:(lv,b)=>botRunSync(botCheck(lv,b)),search:(lv,ban,b)=>botRunSync(botSearch(lv,ban,b||4000)),tolerance:botTolerance,clear:()=>botCache.clear(),feel:()=>feel,setFeel:f=>{Object.assign(feel,f);botCache.clear()},campaign:()=>typeof CAMPAIGN!=='undefined'?CAMPAIGN:null};
+window.BOT_API={guide:lv=>{const g=guidePlan(lv,guideMoveOf(lv));return g&&g.ticks},guideFull:lv=>guidePlan(lv,guideMoveOf(lv)),searchAsync:(lv,ban,b)=>botRunAsync(botSearch(lv,ban,b||4000)),trace:botTrace,run:n=>{for(let i=0;i<n&&!win;i++)step(1/120);return{win:!!win,x:p.x,y:p.y,tries}},watch:botWatch,check:(lv,b)=>botRunSync(botCheck(lv,b)),search:(lv,ban,b)=>botRunSync(botSearch(lv,ban,b||4000)),tolerance:botTolerance,clear:()=>botCache.clear(),feel:()=>feel,setFeel:f=>{Object.assign(feel,f);botCache.clear()},campaign:()=>typeof CAMPAIGN!=='undefined'?CAMPAIGN:null};
 
 startPlay();applyDev();setMode(DEV?'edit':'play');requestAnimationFrame(frame);undoBtns();
 splashRun();
