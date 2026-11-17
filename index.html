@@ -655,18 +655,18 @@ let AC=null;
 // ---------- Allan's sounds (audio/*.mp3, 2026-11-14; his originals are in audio/src) ----------
 // Loaded as soon as the page opens, decoded once the first tap creates the audio context. Until then (or if a file
 // is missing) the old synth sounds play instead.
-const SND={},SND_RAW={},SND_FILES={slam:'slambounce',spring:'spring',oof:'oof',flag:'flag',stinger:'victory-stinger',star1:'star-1',star2:'star-2',star3:'star-3',brkBreak:'break',brkCrack:'crack',music:'world1-theme'};
-const SND_VER=3; // bump when a sound file is replaced, so browsers fetch the new one
+const SND={},SND_RAW={},SND_FILES={slam:'slambounce',spring:'spring',oof:'oof',flag:'flag',stinger:'victory-stinger',star1:'star-1',star2:'star-2',star3:'star-3',brkBreak:'break',brkCrack:'crack',music:'world1-theme',home:'home-theme'};
+const SND_VER=4; // bump when a sound file is replaced, so browsers fetch the new one
 const SND_P=[];for(const k in SND_FILES)SND_P.push(fetch('audio/'+SND_FILES[k]+'.mp3?v='+SND_VER).then(r=>r.ok?r.arrayBuffer():null).then(b=>{if(b){SND_RAW[k]=b;sndDecode()}}).catch(()=>{}));
 function sndDecode(){if(!AC)return;for(const k in SND_RAW){const b=SND_RAW[k];delete SND_RAW[k];
-  AC.decodeAudioData(b,x=>{SND[k]=x;if(k==='music'&&musicWant)musicStart(false)},()=>{})}}
+  AC.decodeAudioData(b,x=>{SND[k]=x;if(k===musicKey&&musicWant)musicStart(false,k)},()=>{})}}
 function play(k,vol,rate,t0){const a=audio();if(!a||!SND[k])return false;try{const s=a.createBufferSource(),g=a.createGain();s.buffer=SND[k];s.playbackRate.value=rate||1;g.gain.value=vol==null?1:vol;s.connect(g).connect(a.destination);s.start(a.currentTime+(t0||0))}catch(_){return false}return true}
 // Music: starts from the top when a level starts, keeps going through retries, stops at the flag.
-let musicSrc=null,musicGain=null,musicWant=false;
-function musicStart(fromTop){if(SIM)return;musicWant=true;if(!feel.music){musicStop();return}const a=audio();if(!a||!SND.music)return;
-  if(musicSrc&&!fromTop){musicGain.gain.value=feel.musicVol*0.7;return}musicStop(true);
-  try{const s=a.createBufferSource(),g=a.createGain();s.buffer=SND.music;s.loop=true;g.gain.value=feel.musicVol*0.7;s.connect(g).connect(a.destination);s.start();musicSrc=s;musicGain=g}catch(_){}}
-function musicStop(now){if(SIM)return;musicWant=false;const s=musicSrc,g=musicGain;musicSrc=null;musicGain=null;if(!s)return;
+let musicSrc=null,musicGain=null,musicWant=false,musicKey='music',musicOn=''; // musicKey: 'music' = level theme, 'home' = start screen theme (Allan 2026-11-17)
+function musicStart(fromTop,key){if(SIM)return;key=key||'music';musicWant=true;musicKey=key;if(!feel.music){musicStop();return}const a=audio();if(!a||!SND[key])return;
+  if(musicSrc&&!fromTop&&musicOn===key){musicGain.gain.value=feel.musicVol*0.7;return}musicStop(true);musicWant=true;
+  try{const s=a.createBufferSource(),g=a.createGain();s.buffer=SND[key];s.loop=true;g.gain.value=feel.musicVol*0.7;s.connect(g).connect(a.destination);s.start();musicSrc=s;musicGain=g;musicOn=key}catch(_){}}
+function musicStop(now){if(SIM)return;musicWant=false;musicOn='';const s=musicSrc,g=musicGain;musicSrc=null;musicGain=null;if(!s)return;
   try{const t=AC.currentTime;if(now){s.stop()}else{g.gain.setValueAtTime(g.gain.value,t);g.gain.linearRampToValueAtTime(0.0001,t+0.25);s.stop(t+0.3)}}catch(_){}}
 function audio(){if(SIM||!feel.sound)return null;try{if(!AC){const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;AC=new A();setTimeout(sndDecode,0)}if(AC.state==='suspended')AC.resume();return AC}catch(_){return null}}
 function tone(f,t0,d,type,vol){const a=audio();if(!a)return;try{const o=a.createOscillator(),g=a.createGain(),t=a.currentTime+t0;o.type=type||'triangle';o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol||0.15,t+0.012);g.gain.exponentialRampToValueAtTime(0.0001,t+d);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+d+0.05)}catch(_){}}
@@ -872,7 +872,7 @@ function die(why){
 function tap(){if((SPLASH||START)&&!SIM)return; // ignore real taps during the splash (the bot still taps)
   if(mode!=='play'||paused||(BOT.busy&&!SIM)) return;
   if(BOT.watch&&!BOT.watch.tapping&&!win) return;
-  if(!SIM){hideHint();audio();if(mode==='play'&&!win&&!musicSrc)musicStart(false)}
+  if(!SIM){hideHint();audio();if(mode==='play'&&!win&&musicOn!=='music')musicStart(false)}
   if(INTRO){INTRO=null;pcam.x=p.x+p.dir*feel.look;pcam.y=p.y-40;return}
   if(win){if(win.ready){tries=1;if(world==='level'){setLevel(pack.cur+1);toast(`Level ${pack.cur+1}: ${level.name}`)}else startPlay()}return}
   if(deadT>0) return;
@@ -1395,8 +1395,9 @@ let START=false;
 const SPOSE={};for(const n of ['rise','apex','fall','land'])SPOSE[n]=Object.assign(new Image(),{src:'art/boing/game/'+n+'.png'});
 const lvStarKey=lv=>{let h=0;const s=JSON.stringify(lv.objs);for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return 'sbl_best_'+h+'_stars'};
 function starTotals(){let n=0;for(const lv of pack.levels)n+=+store.get(lvStarKey(lv))||0;return n}
-function showStart(){START=true;paused=true;$('start').hidden=false;$('sLv').textContent=`Level ${pack.cur+1} · ${level.name||''}`;$('sBankN').textContent=bank;$('sStarN').textContent=`${starTotals()}/${NLEV*3}`;startAnim()}
+function showStart(){START=true;paused=true;$('start').hidden=false;$('sLv').textContent=`Level ${pack.cur+1} · ${level.name||''}`;$('sBankN').textContent=bank;$('sStarN').textContent=`${starTotals()}/${NLEV*3}`;startAnim();musicStart(false,'home')}
 function hideStart(){START=false;$('start').hidden=true;paused=false;last=performance.now()}
+$('start').addEventListener('pointerdown',()=>{audio();if(START&&musicOn!=='home')musicStart(false,'home')}); // browsers only allow sound after a touch
 $('sPlay').onclick=()=>{hideStart();audio();tries=1;startPlay()};
 function sheet2(title,html){$('s2Title').textContent=title;$('s2Body').innerHTML=html;$('sheet2').hidden=false}
 $('s2Close').onclick=()=>{$('sheet2').hidden=true};
