@@ -49,6 +49,32 @@ html.winning #lvBar,html.winning #top .grp{visibility:hidden}
 .fly-coin{position:absolute;z-index:40;width:34px;height:34px;pointer-events:none;will-change:transform}
 .fly-plus{position:absolute;z-index:41;pointer-events:none;font:700 36px/1 var(--f-display);color:#FFDE3D;text-shadow:0 2px 0 #5B3A60,2px 0 #5B3A60,-2px 0 #5B3A60,0 -2px #5B3A60;animation:fplus 1.1s ease-out forwards}
 @keyframes fplus{0%{opacity:0;transform:translate(-50%,0) scale(.5)}20%{opacity:1;transform:translate(-50%,-14px) scale(1.15)}100%{opacity:0;transform:translate(-50%,-60px) scale(1)}}
+/* Start screen (Allan 2026-11-16): logo, Play with the current level, Boing bouncing at the bottom, Stars + Shop teasers */
+#start{position:absolute;inset:0;z-index:90;overflow:hidden;background:linear-gradient(#45CCF0 0%,#9FDDF5 45%,#C9C4FA 100%)}
+#start::before{content:'';position:absolute;inset:0;background:url(art/world/bg-far.png) center 62%/auto 70% repeat-x;opacity:.55}
+#startCv{position:absolute;left:0;top:auto;bottom:0;width:100%;height:46%}
+.s-logo{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 9%);width:min(88%,420px);transform:translateX(-50%);filter:drop-shadow(0 8px 8px rgba(60,20,70,.3));animation:slogo 2.4s ease-in-out infinite}
+@keyframes slogo{0%,100%{transform:translateX(-50%) rotate(-2deg) scale(1)}50%{transform:translateX(-50%) rotate(2deg) scale(1.04)}}
+.s-bank{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);right:12px;z-index:2}
+.bankpill{display:flex;align-items:center;gap:7px;background:linear-gradient(#FFE88A,#FFC531);border:3px solid #B86A00;border-radius:999px;padding:4px 18px 4px 4px;box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 3px 0 rgba(120,60,0,.35)}
+.bankpill img{width:36px;height:36px}
+.bankpill b{font:700 24px/1 var(--f-display);color:#fff;text-shadow:0 2px 0 #9A4F00,2px 0 #9A4F00,-2px 0 #9A4F00,0 -2px #9A4F00;font-variant-numeric:tabular-nums}
+.s-mid{position:absolute;left:0;right:0;top:40%;display:flex;flex-direction:column;align-items:center;gap:12px}
+.s-lv{font:700 20px/1 var(--f-display);color:#fff;letter-spacing:.03em;text-shadow:0 2px 0 #5B3A60,2px 0 #5B3A60,-2px 0 #5B3A60,0 -2px #5B3A60}
+.s-row{display:flex;align-items:center;gap:14px}
+#start .s-play,#pause .p-btn,#sheet2 .p-btn{position:relative;isolation:isolate;font:700 23px/1 var(--f-display);color:#fff;background:none;padding:18px 34px 20px;opacity:1;border:0;cursor:pointer}
+#start .s-play::before,#pause .p-btn::before,#sheet2 .p-btn::before{content:'';position:absolute;inset:0;z-index:-1;background:url(art/ui/button.png) center/100% 100% no-repeat}
+#start .s-play{font-size:40px;padding:24px 54px 28px;animation:wpulse 1s ease-in-out infinite}
+.s-side{display:flex;flex-direction:column;align-items:center;gap:2px;width:70px;height:70px;padding:6px 0 0;border-radius:22px;background:linear-gradient(#8A5C91,#5B3A60);border:2.5px solid #3E2443;box-shadow:inset 0 2px 0 rgba(255,255,255,.25),0 3px 0 rgba(40,20,50,.35)}
+.s-side img{width:34px;height:34px}.s-side span{font:700 13px/1 var(--f-display);color:#FFDE3D}
+#sheet2{position:absolute;inset:0;z-index:95;display:flex;justify-content:center;align-items:center;background:rgba(40,20,60,.45)}
+.s-sheet{max-height:80%}
+.s2-body{width:100%;max-height:46vh;overflow:auto;display:flex;flex-direction:column;gap:6px;font:700 16px/1.2 var(--f-display);color:#5A2F52}
+.s2-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 10px;border-radius:12px;background:rgba(91,58,96,.08);border:0;font:inherit;color:inherit;text-align:left;width:100%}
+.s2-row .st{white-space:nowrap;color:#FFB300;letter-spacing:1px;text-shadow:0 1px 0 #9A4F00}.s2-row .st .no{color:#D9C8D6;text-shadow:none}
+.s2-item{opacity:.75}.s2-item b{display:flex;align-items:center;gap:4px;color:#9A4F00}.s2-item b img{width:20px}
+.s2-soon{text-align:center;color:#B0607A;font-size:18px;margin-bottom:4px}
+#pause .p-home{filter:hue-rotate(110deg) saturate(.7);font-size:19px;padding:14px 28px 16px}
 #pause{position:absolute;inset:0;z-index:30;display:flex;justify-content:center;align-items:center;background:rgba(40,20,60,.45)}
 #pause .p-panel{gap:14px;padding:46px 30px 44px}
 .p-title{font:700 46px/1 var(--f-display);color:#FFDE3D;text-shadow:0 3px 0 #5B3A60,3px 0 #5B3A60,-3px 0 #5B3A60,0 -3px #5B3A60,0 6px 0 #3E2443;margin:4px 0 8px}
@@ -213,6 +239,25 @@ textarea{width:100%;height:180px;font:400 11px/1.4 var(--f-mono);border:2px soli
 
 <div id="app">
   <div id="splash" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100"><img src="art/ui/splash.jpg" alt="Boing" fetchpriority="high"><div id="splashBar"><i id="splashFill"></i></div></div>
+  <div id="start" hidden>
+    <div class="s-bank bankpill"><img src="art/ui/coin.png" alt=""><b id="sBankN">0</b></div>
+    <img class="s-logo" src="art/ui/logo.png" alt="Boing">
+    <canvas id="startCv" aria-hidden="true"></canvas>
+    <div class="s-mid">
+      <div class="s-lv" id="sLv">Level 1 · Hop Along</div>
+      <div class="s-row">
+        <button class="s-side" id="sStars" aria-label="Your stars"><img src="art/ui/star.png" alt=""><span id="sStarN">0/63</span></button>
+        <button class="w-tap s-play" id="sPlay">PLAY</button>
+        <button class="s-side" id="sShop" aria-label="Shop"><img src="art/ui/coin.png" alt=""><span>Shop</span></button>
+      </div>
+    </div>
+  </div>
+  <div id="sheet2" hidden><div class="w-card"><div class="w-panel p-panel s-sheet">
+    <img class="w-crown" src="art/ui/crown.png" alt="">
+    <div class="p-title" id="s2Title">Stars</div>
+    <div class="s2-body" id="s2Body"></div>
+    <button class="w-tap p-btn" id="s2Close">Close</button>
+  </div></div></div>
   <canvas id="cv" aria-label="Game view"></canvas>
 
   <div id="top">
@@ -255,6 +300,7 @@ textarea{width:100%;height:180px;font:400 11px/1.4 var(--f-mono);border:2px soli
     <div class="p-title">Paused</div>
     <button class="w-tap p-btn" id="pCont">Continue</button>
     <button class="w-tap p-btn p-alt" id="pReplay">↻ Replay level</button>
+    <button class="w-tap p-btn p-home" id="pHome">⌂ Home</button>
   </div></div></div>
 
   <div id="tray">
@@ -812,7 +858,7 @@ function die(why){
   Object.assign(p,{x:ckpt.x,y:ckpt.y-30,vx:0,vy:0,slam:false,wind:0,combo:0,land:null});
   lastLandY=ckpt.y+R; trail=[];
 }
-function tap(){if(SPLASH&&!SIM)return; // ignore real taps during the splash (the bot still taps)
+function tap(){if((SPLASH||START)&&!SIM)return; // ignore real taps during the splash (the bot still taps)
   if(mode!=='play'||paused||(BOT.busy&&!SIM)) return;
   if(BOT.watch&&!BOT.watch.tapping&&!win) return;
   if(!SIM){hideHint();audio();if(mode==='play'&&!win&&!musicSrc)musicStart(false)}
@@ -1332,6 +1378,38 @@ function splashRun(){
   requestAnimationFrame(tick);
 }
 
+// ---------- start screen (Allan 2026-11-16) ----------
+// Pitch mode shows it under the splash, so the splash fades straight into it. Play (re)starts the current level.
+let START=false;
+const SPOSE={};for(const n of ['rise','apex','fall','land'])SPOSE[n]=Object.assign(new Image(),{src:'art/boing/game/'+n+'.png'});
+const lvStarKey=lv=>{let h=0;const s=JSON.stringify(lv.objs);for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return 'sbl_best_'+h+'_stars'};
+function starTotals(){let n=0;for(const lv of pack.levels)n+=+store.get(lvStarKey(lv))||0;return n}
+function showStart(){START=true;paused=true;$('start').hidden=false;$('sLv').textContent=`Level ${pack.cur+1} · ${level.name||''}`;$('sBankN').textContent=bank;$('sStarN').textContent=`${starTotals()}/${NLEV*3}`;startAnim()}
+function hideStart(){START=false;$('start').hidden=true;paused=false;last=performance.now()}
+$('sPlay').onclick=()=>{hideStart();audio();tries=1;startPlay()};
+function sheet2(title,html){$('s2Title').textContent=title;$('s2Body').innerHTML=html;$('sheet2').hidden=false}
+$('s2Close').onclick=()=>{$('sheet2').hidden=true};
+$('sStars').onclick=()=>{const rows=pack.levels.map((lv,i)=>{const n=+store.get(lvStarKey(lv))||0;return `<button class="s2-row" data-i="${i}"><span>${i+1}. ${(lv.name||'Level').replace(/</g,'&lt;')}</span><span class="st">${'★'.repeat(n)}<span class="no">${'★'.repeat(3-n)}</span></span></button>`}).join('');
+  sheet2(`Stars ${starTotals()}/${NLEV*3}`,rows);$('s2Body').querySelectorAll('.s2-row').forEach(b=>b.onclick=()=>{$('sheet2').hidden=true;setLevel(+b.dataset.i);hideStart();audio();tries=1;startPlay()})};
+$('sShop').onclick=()=>{const it=[['Jet Boost','Fly sideways until you tap',150],['Extra Bounce','One free save from a fall',80],['Golden Boing','Shiny new look',500]];
+  sheet2('Shop','<div class="s2-soon">Coming soon!</div>'+it.map(([n,d,c])=>`<div class="s2-row s2-item"><span>${n}<br><small style="font-weight:600;opacity:.8">${d}</small></span><b><img src="art/ui/coin.png" alt="">${c}</b></div>`).join(''))};
+$('pHome').onclick=()=>{$('pause').hidden=true;showStart()};
+// Boing bouncing at the bottom of the start screen, using his pose pictures
+let sAnimOn=false;
+function startAnim(){if(sAnimOn)return;sAnimOn=true;const cv=$('startCv'),c=cv.getContext('2d');let t0=performance.now();
+  const loop=now=>{if(!START){sAnimOn=false;return}requestAnimationFrame(loop);
+    const dpr=Math.min(2,devicePixelRatio||1),w=cv.clientWidth,h=cv.clientHeight;if(cv.width!==Math.round(w*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr)}
+    c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);
+    const T=1.0,t=((now-t0)/1000)%T,u=t/T,floor=h*0.7,top=h*0.12,y=floor-(floor-top)*4*u*(1-u),vy=1-2*u; // vy>0 going up
+    // platform
+    const kind='cap',L=WIMG[kind+'-left'],M=WIMG[kind+'-mid'],Rr=WIMG[kind+'-right'];
+    if(wimgOk('cap-mid')&&wimgOk('cap-left')){const k=0.8,ph=M.naturalHeight*k,pw=Math.min(w*0.7,420),x0=w/2-pw/2,lw=L.naturalWidth*k,rw=Rr.naturalWidth*k,py=floor-ART_WALK*k;
+      if(wimgOk('base-bricks')){c.save();const pat=c.createPattern(WIMG['base-bricks'],'repeat');pat.setTransform(new DOMMatrix().scale(1));c.fillStyle=pat;c.fillRect(x0+14,py+14,pw-28,h);c.fillStyle='rgba(40,40,80,.28)';c.fillRect(x0+14,py+14,pw-28,18);c.restore()}
+      c.save();c.beginPath();c.rect(x0+lw-0.5,py-2,pw-lw-rw+1,ph+4);c.clip();for(let x=x0+lw;x<x0+pw-rw;x+=M.naturalWidth*k)c.drawImage(M,x,py,M.naturalWidth*k+0.6,ph);c.restore();c.drawImage(L,x0,py,lw,ph);c.drawImage(Rr,x0+pw-rw,py,rw,ph)}
+    const land=u<0.06||u>0.94,pose=land?'land':vy>0.35?'rise':vy<-0.35?'fall':'apex',im=SPOSE[pose];
+    if(im.complete&&im.naturalWidth){const sz=Math.min(w*0.5,230),sq=land?1-Math.min(u,1-u)/0.06:0,sx=1+sq*0.15,sy=1-sq*0.18;
+      c.save();c.translate(w/2,y);c.scale(sx,sy);c.drawImage(im,-sz/2,-sz*0.92,sz,sz);c.restore()}
+  };requestAnimationFrame(loop)}
 // ---------- loop ----------
 let last=performance.now(),acc=0,hudT=0;
 const SPINE_P=spineBoot();
@@ -1752,6 +1830,7 @@ $('bBotAll').onclick=async()=>{
 window.BOT_API={guide:lv=>{const g=guidePlan(lv,guideMoveOf(lv));return g&&g.ticks},guideFull:lv=>guidePlan(lv,guideMoveOf(lv)),searchAsync:(lv,ban,b)=>botRunAsync(botSearch(lv,ban,b||4000)),trace:botTrace,run:n=>{for(let i=0;i<n&&!win;i++)step(1/120);return{win:!!win,x:p.x,y:p.y,tries}},watch:botWatch,check:(lv,b)=>botRunSync(botCheck(lv,b)),search:(lv,ban,b)=>botRunSync(botSearch(lv,ban,b||4000)),tolerance:botTolerance,clear:()=>botCache.clear(),feel:()=>feel,setFeel:f=>{Object.assign(feel,f);botCache.clear()},campaign:()=>typeof CAMPAIGN!=='undefined'?CAMPAIGN:null};
 
 startPlay();applyDev();setMode(DEV?'edit':'play');requestAnimationFrame(frame);undoBtns();
+if(!DEV)showStart();
 splashRun();
 // hold the level name for 1 second to show or hide the dev tools (Edit, Bot, Feel, debug line)
 {let t=0;const n=$('lvName');n.addEventListener('pointerdown',()=>{clearTimeout(t);t=setTimeout(()=>{DEV=!DEV;try{localStorage.setItem('sbl_dev',DEV?'1':'0')}catch(e){}applyDev();if(!DEV&&mode!=='play')setMode('play');toast(DEV?'Dev tools on':'Dev tools hidden')},900)});
