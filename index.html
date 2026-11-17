@@ -45,6 +45,7 @@ html.pitch #bRestart{width:42px;height:42px;padding:0;border-radius:50%;font:700
 #guide.wait .g-txt{font-size:36px}
 #guide.msg .g-hand{display:none}
 #guide.msg .g-txt{font-size:26px;animation:none;transform:translateX(-50%)}
+#guide.msg .g-txt{white-space:pre;text-align:center;line-height:1.1}
 #guide.dbl .g-hand{animation:gpress2 .8s ease-in-out infinite}
 #guide.fast .g-hand{animation-duration:.25s}
 @keyframes gpress2{0%,40%,100%{transform:translate(14px,14px) scale(1)}10%,30%{transform:translate(4px,4px) scale(.88)}20%{transform:translate(12px,12px) scale(.98)}}
@@ -512,20 +513,22 @@ function guideStart(){GUIDE=null;if(!feel.guide||world!=='level'||mode!=='play'|
   // Feel "Double tutorial" = tap-tap (Allan 2026-11-16): the quick turning tap after a slam doesn't freeze. The game stops once
   // on the first tap of the pair ("TAP TAP!"), then runs at full speed so the player feels the rhythm, with the finger showing.
   if(mv==='double'&&feel.guideDouble!=='steps')for(let i=1;i<t.length;i++)if(t[i]-t[i-1]<=GUIDE_PAIR&&!GUIDE.free.has(i-1)){GUIDE.pair.add(i-1);GUIDE.free.add(i)}}
+let wallTip=null;const WALL_TIP_TICKS=420,WALL_TIP_TXT='TAP-TAP to turn!\nGrab the coins!';
 const GUIDE_PAIR=90; // two tutorial taps closer than this (ticks, 0.75 s) count as one tap-tap
 function guideLabel(){if(!GUIDE)return'';if(GUIDE.pair.has(GUIDE.i))return'TAP TAP!';if(GUIDE.free.has(GUIDE.i))return'TAP!';if(GUIDE.move==='double')return GUIDE.i>0?GUIDE_TXT.double:GUIDE_TXT.slam;if(GUIDE.move==='tough'&&GUIDE.i===0)return'SLAM it!';return GUIDE_TXT[GUIDE.move]||'TAP!'}
 function guideLead(){if(!GUIDE||GUIDE.off||win||deadT>0||INTRO)return 9;const t=GUIDE.ticks[GUIDE.i];return t==null?9:(t-liveTick)/120}
 function placeGuide(c,s){const el=$('guide'),d=guideLead();
   // level 1 needs no taps: just say so for the first few seconds
   const intro1=feel.guide&&mode==='play'&&world==='level'&&pack.cur===0&&!INTRO&&!win&&liveTick<360&&(feel.guideAlways||!guideDone.has(levelKey()));
-  const on=mode==='play'&&(d<0.35||intro1);
+  const tip=!intro1&&wallTip&&mode==='play'&&!win&&!INTRO&&d>=0.35&&liveTick-wallTip.t<WALL_TIP_TICKS;
+  const on=mode==='play'&&(d<0.35||intro1||tip);
   if(!on){if(!el.hidden)el.hidden=true;return}
-  el.hidden=false;el.classList.toggle('wait',!!(GUIDE&&GUIDE.wait));el.classList.toggle('dbl',!!(GUIDE&&GUIDE.pair.has(GUIDE.i)));el.classList.toggle('fast',!!(GUIDE&&GUIDE.free.has(GUIDE.i)));el.classList.toggle('msg',d>=0.35);$('guideTxt').textContent=d<0.35?guideLabel():'Boing bounces by himself!';
+  el.hidden=false;el.classList.toggle('wait',!!(GUIDE&&GUIDE.wait));el.classList.toggle('dbl',!!(GUIDE&&GUIDE.pair.has(GUIDE.i)));el.classList.toggle('fast',!!(GUIDE&&GUIDE.free.has(GUIDE.i)));el.classList.toggle('msg',d>=0.35);$('guideTxt').textContent=d<0.35?guideLabel():tip?WALL_TIP_TXT:'Boing bounces by himself!';
   const x=(p.x-c.x)*s+W/2,y=(p.y-c.y)*s+H/2;el.style.transform=`translate(${x+18}px,${y+20}px)`;
   const tx=$('guideTxt'),tw=tx.offsetWidth,cx=Math.max(tw/2+10,Math.min(W-tw/2-10,x));tx.style.left=(cx-x-18)+'px'}
 // ---------- play ----------
 function startPlay(){
-  simT=0;BOT.watch=null;if(!SIM){liveTick=0;GUIDE=null;if(mode==='play')musicStart(tries===1)}
+  simT=0;BOT.watch=null;if(!SIM){liveTick=0;GUIDE=null;wallTip=null;if(mode==='play')musicStart(tries===1)}
   rt={broken:new Set(),got:new Set(),hits:new Map(),hitT:new Map()};
   const sp=world==='level'?level.spawn:{x:0,y:-60,dir:1};
   p={x:sp.x,y:sp.y,vx:0,vy:0,dir:sp.dir||1,slam:false,wind:0,combo:0,squash:0,land:null,lastSlamT:-9,tapGap:null};
@@ -792,8 +795,10 @@ function step(dt){
   }
   // walls stop Boing sideways (he keeps bouncing in place until a DOUBLE turns him)
   for(const o of list){if(o.type!=='wall'||p.y+R*0.5<=o.y)continue;
-    if(p.vx>0&&px0+R<=o.x+0.5&&p.x+R>o.x)p.x=o.x-R;
-    else if(p.vx<0&&px0-R>=o.x+o.w-0.5&&p.x-R<o.x+o.w)p.x=o.x+o.w+R}
+    let hit=false;
+    if(p.vx>0&&px0+R<=o.x+0.5&&p.x+R>o.x){p.x=o.x-R;hit=true}
+    else if(p.vx<0&&px0-R>=o.x+o.w-0.5&&p.x-R<o.x+o.w){p.x=o.x+o.w+R;hit=true}
+    if(hit&&!SIM&&!wallTip&&feel.guide)wallTip={t:liveTick}} // Allan 2026-11-16: first wall bump shows a tap-tap tip
   if(p.y>lastLandY+1600) die('Fell');
   p.squash=Math.max(0,p.squash-dt*6);
   stats.best=Math.max(stats.best,(startY-(p.y+R))/40);
