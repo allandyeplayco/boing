@@ -33,6 +33,27 @@ button.on{background:var(--accent)}
 #coinPill.bump{animation:cbump .3s cubic-bezier(.2,1.8,.4,1)}
 @keyframes cbump{0%{transform:scale(1.3)}100%{transform:none}}
 html.pitch #coinPill{display:flex}
+/* Coin bank + pause (Allan 2026-11-16, for the pitch): row 1 = pause + bank, row 2 = level pill + this level's coins */
+#bPause,#bankPill,#top .brk{display:none}
+html.pitch #bPause{display:flex;align-items:center;justify-content:center;gap:5px;order:0;width:46px;height:46px;padding:0;border-radius:50%;background:linear-gradient(#8A5C91,#5B3A60);border:2.5px solid #3E2443;box-shadow:inset 0 2px 0 rgba(255,255,255,.25),0 3px 0 rgba(40,20,50,.35)}
+#bPause i{display:block;width:6px;height:18px;border-radius:3px;background:#fff;box-shadow:0 2px 0 #3E2443}
+html.pitch #bankPill{display:flex;order:1;margin-left:auto;align-items:center;gap:7px;background:linear-gradient(#FFE88A,#FFC531);border:3px solid #B86A00;border-radius:999px;padding:4px 18px 4px 4px;box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 3px 0 rgba(120,60,0,.35)}
+#bankPill img{width:36px;height:36px}
+#bankPill b{font:700 24px/1 var(--f-display);color:#fff;text-shadow:0 2px 0 #9A4F00,2px 0 #9A4F00,-2px 0 #9A4F00,0 -2px #9A4F00;font-variant-numeric:tabular-nums;min-width:2ch}
+#bankPill.bump{animation:cbump .25s cubic-bezier(.2,1.8,.4,1)}
+html.pitch #top .brk{display:block;order:2;flex-basis:100%;height:0}
+html.pitch #lvBar{order:3}html.pitch #top .grp{order:4}
+html.pitch #bRestart{display:none!important}
+#top{z-index:21}
+html.winning #lvBar,html.winning #top .grp{visibility:hidden}
+.fly-coin{position:absolute;z-index:40;width:34px;height:34px;pointer-events:none;will-change:transform}
+.fly-plus{position:absolute;z-index:41;pointer-events:none;font:700 36px/1 var(--f-display);color:#FFDE3D;text-shadow:0 2px 0 #5B3A60,2px 0 #5B3A60,-2px 0 #5B3A60,0 -2px #5B3A60;animation:fplus 1.1s ease-out forwards}
+@keyframes fplus{0%{opacity:0;transform:translate(-50%,0) scale(.5)}20%{opacity:1;transform:translate(-50%,-14px) scale(1.15)}100%{opacity:0;transform:translate(-50%,-60px) scale(1)}}
+#pause{position:absolute;inset:0;z-index:30;display:flex;justify-content:center;align-items:center;background:rgba(40,20,60,.45)}
+#pause .p-panel{gap:14px;padding:46px 30px 44px}
+.p-title{font:700 46px/1 var(--f-display);color:#FFDE3D;text-shadow:0 3px 0 #5B3A60,3px 0 #5B3A60,-3px 0 #5B3A60,0 -3px #5B3A60,0 6px 0 #3E2443;margin:4px 0 8px}
+#pause .p-btn{opacity:1;cursor:pointer;min-width:220px;border:0}
+#pause .p-alt{font-size:19px;padding:14px 28px 16px;filter:hue-rotate(200deg) saturate(.8)}
 html.pitch #top .seg,html.pitch #hud,html.pitch #bWorld,html.pitch #bBot,html.pitch #bFeel,html.pitch #hint{display:none!important}
 html.pitch .lvl{background:linear-gradient(#8A5C91,#5B3A60);border:2.5px solid #3E2443;border-radius:999px;box-shadow:inset 0 2px 0 rgba(255,255,255,.25),0 3px 0 rgba(40,20,50,.35)}
 html.pitch .lvl button{background:none;color:#fff}
@@ -195,6 +216,9 @@ textarea{width:100%;height:180px;font:400 11px/1.4 var(--f-mono);border:2px soli
   <canvas id="cv" aria-label="Game view"></canvas>
 
   <div id="top">
+    <button id="bPause" aria-label="Pause"><i></i><i></i></button>
+    <div id="bankPill" aria-label="Coin bank"><img src="art/ui/coin.png" alt=""><b id="bankN">0</b></div>
+    <span class="brk"></span>
     <div class="lvl" id="lvBar"><button id="lvPrev" aria-label="Previous level">‹</button><span id="lvName">1/5</span><button id="lvNext" aria-label="Next level">›</button></div>
     <div class="seg" role="tablist">
       <button id="bEdit" class="on">Edit</button>
@@ -223,6 +247,14 @@ textarea{width:100%;height:180px;font:400 11px/1.4 var(--f-mono);border:2px soli
     <div class="w-best" id="wBest" hidden><span class="w-spark l"><i></i><i></i></span><span class="w-spark r"><i></i><i></i></span><span id="wBestT">NEW BEST</span></div>
     <div class="w-prev" id="wPrev"></div>
     <div class="w-tap" id="wTap">Tap to go again</div>
+  </div></div></div>
+
+  <div id="pause" hidden><div class="w-card"><div class="w-panel p-panel">
+    <img class="w-crown" src="art/ui/crown.png" alt="">
+    <div class="w-lv" id="pLv">Level 1</div>
+    <div class="p-title">Paused</div>
+    <button class="w-tap p-btn" id="pCont">Continue</button>
+    <button class="w-tap p-btn p-alt" id="pReplay">↻ Replay level</button>
   </div></div></div>
 
   <div id="tray">
@@ -291,6 +323,7 @@ const TYPES={
 };
 const FEEL=[
  ['starRule','Stars are for',0,0,0,'seg'],
+ ['starBonus','Bank bonus per new star (star 1 ×1, 2 ×2, 3 ×3)',0,50,5,'coins'],
  ['art','World art',0,0,0,'seg'],
  ['anchor','Platforms with a base (auto)',0,0,0,'seg'],
  ['bgDepth','Background depth (parallax)',0,2,0.05,'×'],
@@ -337,7 +370,7 @@ const FEEL=[
  ['guideAlways','Tutorial every time (even after clearing)',0,1,1,'bool'],
  ['guideDouble','Double tutorial',0,0,0,'seg']
 ];
-const DEF={guideDouble:'rhythm',splashMin:2,guideAlways:1,music:1,musicVol:0.5,guide:1,starRule:'slams',art:'painted',anchor:'wide',bgDepth:1,gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,intro:'fly',goalArrow:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,quickTurnAny:1,turnSfx:'jingle',chainReset:1,lateFair:1,v2:1,v3:1};
+const DEF={starBonus:10,guideDouble:'rhythm',splashMin:2,guideAlways:1,music:1,musicVol:0.5,guide:1,starRule:'slams',art:'painted',anchor:'wide',bgDepth:1,gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,intro:'fly',goalArrow:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,quickTurnAny:1,turnSfx:'jingle',chainReset:1,lateFair:1,v2:1,v3:1};
 const TURNS=[['every','Every slam'],['chain','Every slam after the 1st'],['second','Every 2nd slam'],['never','Never']];
 const SEGS={guideDouble:[['rhythm','Tap-tap (one stop)'],['steps','Stop for each tap']],starRule:[['slams','Few slams'],['goals','3 goals'],['coins','Coins buy back slams']],art:[['painted','Painted (concept)'],['greybox','Greybox'],['plain','Plain (old)']],anchor:[['wide','Wide ones'],['all','All'],['none','None']],turnSfx:[['jingle','Old DOUBLE jingle'],['whoosh','Whoosh'],['blip','Small blip'],['off','Off']],intro:[['fly','Fly from flag'],['zoom','Zoom out, then in'],['off','Off']],turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
 
@@ -528,7 +561,7 @@ function placeGuide(c,s){const el=$('guide'),d=guideLead();
   const tx=$('guideTxt'),tw=tx.offsetWidth,cx=Math.max(tw/2+10,Math.min(W-tw/2-10,x));tx.style.left=(cx-x-18)+'px'}
 // ---------- play ----------
 function startPlay(){
-  simT=0;BOT.watch=null;if(!SIM){liveTick=0;GUIDE=null;wallTip=null;if(mode==='play')musicStart(tries===1)}
+  simT=0;BOT.watch=null;if(!SIM){document.documentElement.classList.remove('winning');if(bankShown!==bank)bankSettle();liveTick=0;GUIDE=null;wallTip=null;if(mode==='play')musicStart(tries===1)}
   rt={broken:new Set(),got:new Set(),hits:new Map(),hitT:new Map()};
   const sp=world==='level'?level.spawn:{x:0,y:-60,dir:1};
   p={x:sp.x,y:sp.y,vx:0,vy:0,dir:sp.dir||1,slam:false,wind:0,combo:0,squash:0,land:null,lastSlamT:-9,tapGap:null};
@@ -657,6 +690,32 @@ function starSparkles(star){const box=star.parentNode;if(!box||matchMedia('(pref
   // twinkles that keep popping while the popup is up
   for(let k=0;k<4;k++){const sz=34+Math.random()*30;
     add('loop',star.offsetLeft+Math.random()*star.offsetWidth,star.offsetTop+Math.random()*star.offsetHeight,sz,`animation-delay:${0.5+Math.random()*1.4}s;animation-duration:${1+Math.random()*0.6}s`)}}
+// ---------- coin bank (Allan 2026-11-16: hint at an economy) ----------
+// Every coin you grab goes in the bank, replays too. Each star you earn on a level for the FIRST time pays a bonus:
+// star n pays n × Feel starBonus (10, 20, 30 by default). Replays with no new star pay no bonus.
+let bank=0,bankShown=0;
+function bankLoad(){bank=+store.get('sbl_bank')||0;bankShown=bank;bankDraw()}
+function bankDraw(bump){const el=document.getElementById('bankN');if(!el)return;el.textContent=Math.round(bankShown);if(bump){const pl=$('bankPill');pl.classList.remove('bump');void pl.offsetWidth;pl.classList.add('bump')}}
+let bankRun=0;
+function bankPay(stars,starEls,coinEl){
+  const paidK=levelKey()+'_paid',paid=+store.get(paidK)||0,bonus=[];
+  for(let i=paid;i<stars;i++)bonus.push({i,amt:(i+1)*feel.starBonus});
+  const coins=stats.coins,total=coins+bonus.reduce((a,b)=>a+b.amt,0);
+  bankShown=bank;bank+=total;store.set('sbl_bank',bank);if(stars>paid)store.set(paidK,stars);
+  const run=++bankRun,app=$('app'),ar=app.getBoundingClientRect();
+  const center=el=>{const r=el.getBoundingClientRect();return{x:r.left+r.width/2-ar.left,y:r.top+r.height/2-ar.top}};
+  const fly=(from,val,delay)=>setTimeout(()=>{if(run!==bankRun)return;const to=center($('bankPill').querySelector('img'));
+    const im=document.createElement('img');im.src='art/ui/coin.png';im.className='fly-coin';app.appendChild(im);
+    const dx=to.x-from.x,dy=to.y-from.y,side=(Math.random()-.5)*160;
+    const a=im.animate([{transform:`translate(${from.x-17}px,${from.y-17}px) scale(.6)`},{transform:`translate(${from.x-17+dx*.35+side}px,${from.y-17+dy*.2-50}px) scale(1.25)`,offset:.35},{transform:`translate(${to.x-17}px,${to.y-17}px) scale(.8)`}],{duration:620,easing:'cubic-bezier(.45,0,.6,1)'});
+    a.onfinish=()=>{im.remove();if(run!==bankRun)return;bankShown=Math.min(bank,bankShown+val);bankDraw(true);tone(1320+Math.random()*200,0,0.05,'square',0.035)}},delay);
+  const plus=(at,text,delay)=>setTimeout(()=>{if(run!==bankRun)return;const d=document.createElement('div');d.className='fly-plus';d.textContent=text;d.style.left=at.x+'px';d.style.top=(at.y-40)+'px';app.appendChild(d);setTimeout(()=>d.remove(),1200)},delay);
+  let t=2500; // after the stars have popped in
+  if(coins&&coinEl){const from=center(coinEl);plus(from,'+'+coins,t);const n=Math.min(coins,12);for(let k=0;k<n;k++){const v=Math.floor(coins*(k+1)/n)-Math.floor(coins*k/n);fly(from,v,t+k*80)}t+=n*80+250}
+  for(const b of bonus){const el=starEls[b.i];if(!el)continue;const from=center(el);plus(from,'+'+b.amt,t);const n=Math.min(6,Math.max(3,Math.round(b.amt/5)));for(let k=0;k<n;k++){const v=Math.floor(b.amt*(k+1)/n)-Math.floor(b.amt*k/n);fly(from,v,t+k*70)}t+=n*70+200}
+  setTimeout(()=>{if(run!==bankRun)return;bankShown=bank;bankDraw()},t+900);
+}
+function bankSettle(){bankRun++;bankShown=bank;bankDraw();document.querySelectorAll('.fly-coin,.fly-plus').forEach(e=>e.remove())}
 function showBanner(){document.querySelectorAll('#wStars .w-twinkle').forEach(e=>e.remove());
   $('wTap').textContent=world==='level'?`Tap for level ${(pack.cur+1)%NLEV+1}`:'Tap to go again';
   const el=$('win');el.hidden=false;el.classList.remove('in');void el.offsetWidth;el.classList.add('in');$('wTap').classList.remove('on');
@@ -677,6 +736,7 @@ function showBanner(){document.querySelectorAll('#wStars .w-twinkle').forEach(e=
   if(sr&&sr.goals){wg.textContent='';const L=['Reach the flag',nCoins>1?`All ${nCoins} coins`:nCoins?'The coin':'All coins (none here)',par===0?'No slams':`${par} slam${par===1?'':'s'} or fewer`];
     const ul=document.createElement('div');ul.className='w-goals';sr.goals.forEach((ok,i)=>{const d=document.createElement('div');d.className=ok?'ok':'no';d.textContent=(ok?'✓ ':'✗ ')+L[i];ul.appendChild(d)});wg.appendChild(ul)}
   if(inLevel&&!SIM)guideDone.add(levelKey());
+  if(inLevel&&!SIM&&!BOT.watch&&mode==='play'){document.documentElement.classList.add('winning');bankPay(stars,[...st.querySelectorAll('.w-star')],$('wCoins').parentNode.querySelector('img'))}
   if(inLevel&&!SIM){const k=levelKey()+'_stars',old=store.get(k)||0;if(stars>old)store.set(k,stars)}
   if(win.best||(inLevel&&win.prev==null))setTimeout(()=>{tone(1319,0,0.12,'square',0.07);tone(1760,0.1,0.3,'square',0.07)},650);
 }
@@ -1437,6 +1497,11 @@ function setMode(m){
 $('bEdit').onclick=()=>setMode('edit');
 $('bPlay').onclick=()=>setMode('play');
 $('bRestart').onclick=()=>{tries++;startPlay()};
+$('bPause').onclick=()=>{if(mode!=='play'||win||paused)return;paused=true;$('pLv').textContent=world==='level'?`Level ${pack.cur+1} · ${level.name||''}`:'Endless';$('pause').hidden=false};
+const unpause=()=>{$('pause').hidden=true;paused=false;last=performance.now()};
+$('pCont').onclick=unpause;
+$('pReplay').onclick=()=>{unpause();tries++;startPlay()};
+bankLoad();
 $('bWorld').onclick=()=>{world=world==='level'?'endless':'level';$('bWorld').textContent='Mode: '+(world==='level'?'Level':'Endless');tries=1;$('lvBar').hidden=world==='endless';startPlay();toast(world==='level'?`Level ${pack.cur+1}: ${level.name}`:'Endless random platforms')};
 lvLabel();
 let toastT=0;function toast(s){const t=$('toast');t.textContent=s;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),1800)}
@@ -1448,7 +1513,7 @@ function applyAll(){
   if(!pk){pack={cur:0,camp:CAMP_VER,levels:[]};for(let i=0;i<NLEV;i++)pack.levels.push(starter(i));store.set('sbl_pack',pack)}
   else if(pk&&Array.isArray(pk.levels)&&pk.levels.length){pack=pk;while(pack.levels.length<NLEV)pack.levels.push(starter(pack.levels.length));if(!(pack.cur>=0&&pack.cur<NLEV))pack.cur=0}
   level=pack.levels[pack.cur];nextId=level.objs.reduce((m,o)=>Math.max(m,+o.id||0),0);
-  for(const k in UNDO)delete UNDO[k];undoBtns();
+  for(const k in UNDO)delete UNDO[k];undoBtns();bankLoad();
   sel=null;showSel();syncFeel();lvLabel();findSpawn();if(mode==='play'){tries=1;startPlay()}
 }
 async function cloudBoot(){
@@ -1603,7 +1668,7 @@ function botTolerance(lv,plan){
     return {taps:base.ticks,win:win_,plan:plan.slice(0,base.used||plan.length)};
   } finally {botGive(keep)}
 }
-const LOOK_ONLY=new Set(['guideDouble','splashMin','guideAlways','music','musicVol','guide','starRule','art','bgDepth','anchor','skin','boingSize','poseBlend','tilt','squashAmt','showHitbox','zoom','look','shake','sound','bounceSfx','turnSfx','phoneFrame','intro','goalArrow','deathArc']);
+const LOOK_ONLY=new Set(['starBonus','guideDouble','splashMin','guideAlways','music','musicVol','guide','starRule','art','bgDepth','anchor','skin','boingSize','poseBlend','tilt','squashAmt','showHitbox','zoom','look','shake','sound','bounceSfx','turnSfx','phoneFrame','intro','goalArrow','deathArc']);
 // like botLevelHash, but ignores Feel settings that only change the look
 function botHashKey(lv){const f={};for(const k in feel)if(!LOOK_ONLY.has(k))f[k]=feel[k];const t=JSON.stringify(lv.objs)+JSON.stringify(lv.spawn)+JSON.stringify(f);let h=0;for(let i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))|0;return h}
 function botLevelHash(lv){return JSON.stringify(lv.objs)+JSON.stringify(lv.spawn)+JSON.stringify(feel)}
