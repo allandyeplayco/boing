@@ -167,9 +167,11 @@ html.pitch #bRestart{width:42px;height:42px;padding:0;border-radius:50%;font:700
 .w-panel .w-stats::before{content:'';position:absolute;inset:0;z-index:-1;background:url(art/ui/stats-bar.png) center/100% 100% no-repeat}
 .w-panel .w-stats div{min-width:0;flex:1;gap:3px}
 .w-panel .w-stats div+div{border-left:2px solid rgba(255,255,255,.28)}
-.w-panel .w-stats b{font:700 30px/1 var(--f-display);color:#FFDE3D;display:flex;align-items:center;gap:4px;
+.w-panel .w-stats b{font:700 28px/1 var(--f-display);letter-spacing:-.02em;color:#FFDE3D;display:flex;align-items:center;gap:4px;
   text-shadow:2px 0 var(--plum),-2px 0 var(--plum),0 2px var(--plum),0 -2px var(--plum),0 3px 0 var(--plum)}
 .w-panel .w-stats b img{width:28px;height:auto}
+.w-panel .w-stats .w-cl{display:flex;align-items:center;gap:3px}
+.w-panel .w-stats .w-cl img{width:15px;height:15px;margin:-2px 0}
 .w-panel .w-stats span{font:700 13px/1 var(--f-display);letter-spacing:.06em;color:#fff;text-shadow:0 1px 0 rgba(74,47,80,.6)}
 .w-panel .w-stats b span{font:inherit;color:inherit;letter-spacing:0;text-shadow:inherit}
 .w-panel .w-best{position:relative;background:none;padding:2px 46px;border-radius:0;font:700 26px/1.1 var(--f-display);letter-spacing:.03em;white-space:nowrap;color:#FF3E8E;
@@ -298,7 +300,7 @@ textarea{width:100%;height:180px;font:400 11px/1.4 var(--f-mono);border:2px soli
     <img class="w-clear" src="art/ui/title.png" alt="Level clear!">
     <div class="w-stars" id="wStars" aria-label="Stars"><img class="w-star" src="art/ui/star-empty.png" alt=""><img class="w-star" src="art/ui/star-empty.png" alt=""><img class="w-star" src="art/ui/star-empty.png" alt=""><span class="w-spark l"><i></i><i></i></span><span class="w-spark r"><i></i><i></i></span></div>
     <div class="w-goal" id="wGoal"></div>
-    <div class="w-stats"><div><b id="wSlams">0</b><span>slams</span></div><div><b><img src="art/ui/coin.png" alt=""><span id="wCoins">0</span></b><span>coins</span></div><div><b id="wTime">0.00</b><span>seconds</span></div></div>
+    <div class="w-stats"><div><b id="wSlams">0</b><span>slams</span></div><div><b><span id="wCoins">0</span></b><span class="w-cl"><img src="art/ui/coin.png" alt="">coins</span></div><div><b id="wTime">0.00</b><span>seconds</span></div></div>
     <div class="w-best" id="wBest" hidden><span class="w-spark l"><i></i><i></i></span><span class="w-spark r"><i></i><i></i></span><span id="wBestT">NEW BEST</span></div>
     <div class="w-prev" id="wPrev"></div>
     <div class="w-btns" id="wTap"><button class="w-sq" id="wHome"><img src="art/ui/icon-home.png" alt=""><span>Home</span></button><button class="w-sq" id="wReplay"><img src="art/ui/icon-replay.png" alt=""><span>Replay</span></button><button class="w-next" id="wNext"><img src="art/ui/icon-next.png" alt=""><span id="wNextT">Next Level</span></button></div>
@@ -792,7 +794,7 @@ function showBanner(){document.querySelectorAll('#wStars .w-twinkle').forEach(e=
   if(sr&&sr.goals){wg.textContent='';const L=['Reach the flag',nCoins>1?`All ${nCoins} coins`:nCoins?'The coin':'All coins (none here)',par===0?'No slams':`${par} slam${par===1?'':'s'} or fewer`];
     const ul=document.createElement('div');ul.className='w-goals';sr.goals.forEach((ok,i)=>{const d=document.createElement('div');d.className=ok?'ok':'no';d.textContent=(ok?'✓ ':'✗ ')+L[i];ul.appendChild(d)});wg.appendChild(ul)}
   if(inLevel&&!SIM)guideDone.add(levelKey());
-  if(inLevel&&!SIM&&!BOT.watch&&mode==='play'){document.documentElement.classList.add('winning');bankPay(stars,[...st.querySelectorAll('.w-star')],$('wCoins').parentNode.querySelector('img'))}
+  if(inLevel&&!SIM&&!BOT.watch&&mode==='play'){document.documentElement.classList.add('winning');bankPay(stars,[...st.querySelectorAll('.w-star')],document.querySelector('#win .w-cl img'))}
   if(inLevel&&!SIM){const k=levelKey()+'_stars',old=store.get(k)||0;if(stars>old)store.set(k,stars)}
   if(win.best||(inLevel&&win.prev==null))setTimeout(()=>{tone(1319,0,0.12,'square',0.07);tone(1760,0.1,0.3,'square',0.07)},650);
 }
