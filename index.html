@@ -67,6 +67,21 @@ html.winning #lvBar,html.winning #top .grp{visibility:hidden}
 #start .s-play{font-size:40px;padding:24px 54px 28px;animation:wpulse 1s ease-in-out infinite}
 .s-side{display:flex;flex-direction:column;align-items:center;gap:2px;width:70px;height:70px;padding:6px 0 0;border-radius:22px;background:linear-gradient(#8A5C91,#5B3A60);border:2.5px solid #3E2443;box-shadow:inset 0 2px 0 rgba(255,255,255,.25),0 3px 0 rgba(40,20,50,.35)}
 .s-side img{width:34px;height:34px}.s-side span{font:700 13px/1 var(--f-display);color:#FFDE3D}
+/* Settings popup on the start screen (Allan 2026-11-17, from his reference: green On pills, grey Japanese until it exists) */
+.s-gear{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:12px;z-index:2;width:50px;height:50px;padding:0;border-radius:50%;background:linear-gradient(#8A5C91,#5B3A60);border:2.5px solid #3E2443;box-shadow:inset 0 2px 0 rgba(255,255,255,.25),0 3px 0 rgba(40,20,50,.35);color:#FFDE3D;display:grid;place-items:center;cursor:pointer}
+.s-gear svg{width:30px;height:30px;filter:drop-shadow(0 1.5px 0 #3E2443)}
+.s-gear:active,.st-tog:active,.st-reset:active,.st-x:active{transform:scale(.93)}
+#settings{position:absolute;inset:0;z-index:96;display:flex;justify-content:center;align-items:center;background:rgba(40,20,60,.45)}
+#settings .st-panel{gap:14px;padding:40px 26px 38px;width:min(330px,calc(100vw - 32px))}
+#settings .st-title{font-size:38px;margin:0 0 4px}
+.st-row{display:flex;align-items:center;justify-content:space-between;width:100%;font:700 21px/1 var(--f-display);color:#5A2F52}
+.st-pair{display:flex;gap:8px}
+.st-tog{min-width:74px;padding:9px 14px 11px;border:0;border-radius:16px;font:700 17px/1 var(--f-display);color:#fff;cursor:pointer;background:linear-gradient(#7BD86A,#3FAE3A);box-shadow:inset 0 2px 0 rgba(255,255,255,.45),0 4px 0 #2A7A2A;text-shadow:0 1.5px 0 rgba(0,60,0,.45)}
+.st-tog.off{background:linear-gradient(#C9BFC9,#9C8F9C);box-shadow:inset 0 2px 0 rgba(255,255,255,.4),0 4px 0 #6F636F;text-shadow:0 1.5px 0 rgba(0,0,0,.25)}
+.st-tog:disabled{opacity:.55;cursor:default}
+.st-reset{margin-top:6px;padding:10px 20px 12px;border:0;border-radius:16px;font:700 16px/1 var(--f-display);color:#fff;cursor:pointer;background:linear-gradient(#7CC2FF,#3F8BE0);box-shadow:inset 0 2px 0 rgba(255,255,255,.45),0 4px 0 #2A5FA8;text-shadow:0 1.5px 0 rgba(0,30,80,.45)}
+.st-reset.sure{background:linear-gradient(#FF8A8A,#E0443F);box-shadow:inset 0 2px 0 rgba(255,255,255,.45),0 4px 0 #A82A2A}
+.st-x{position:absolute;top:14px;right:10px;width:44px;height:44px;border-radius:50%;border:3px solid #fff;background:linear-gradient(#FF7A8A,#E0405A);color:#fff;font:700 20px/1 var(--f-display);cursor:pointer;box-shadow:0 3px 0 #9A2238}
 #sheet2{position:absolute;inset:0;z-index:95;display:flex;justify-content:center;align-items:center;background:rgba(40,20,60,.45)}
 .s-sheet{max-height:80%}
 .s2-body{width:100%;max-height:46vh;overflow:auto;display:flex;flex-direction:column;gap:6px;font:700 16px/1.2 var(--f-display);color:#5A2F52}
@@ -252,6 +267,7 @@ textarea{width:100%;height:180px;font:400 11px/1.4 var(--f-mono);border:2px soli
   <div id="splash" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100"><img src="art/ui/splash.jpg" alt="Boing" fetchpriority="high"><div id="splashBar"><i id="splashFill"></i></div></div>
   <div id="start" hidden>
     <div class="s-bank bankpill"><img src="art/ui/coin.png" alt=""><b id="sBankN">0</b></div>
+    <button class="s-gear" id="sGear" aria-label="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3h-4l-.4 2.7a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.4 7.4 0 0 0 1.7 1L11 21h4l.4-2.7a7.4 7.4 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5A3.5 3.5 0 1 1 13 8.5a3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg></button>
     <img class="s-logo" src="art/ui/logo.png" alt="Boing">
     <canvas id="startCv" aria-hidden="true"></canvas>
     <div class="s-mid">
@@ -263,6 +279,14 @@ textarea{width:100%;height:180px;font:400 11px/1.4 var(--f-mono);border:2px soli
       </div>
     </div>
   </div>
+  <div id="settings" hidden><div class="w-card"><div class="w-panel p-panel st-panel">
+    <div class="p-title st-title">Settings</div>
+    <div class="st-row"><span>Music</span><button class="st-tog" id="stMusic">On</button></div>
+    <div class="st-row"><span>Sound</span><button class="st-tog" id="stSound">On</button></div>
+    <div class="st-row"><span>Language</span><span class="st-pair"><button class="st-tog off" id="stJa" disabled title="Coming soon">日本語</button><button class="st-tog" id="stEn">English</button></span></div>
+    <button class="st-reset" id="stReset">Reset progress (dev)</button>
+    <button class="st-x" id="stClose" aria-label="Close">✕</button>
+  </div></div></div>
   <div id="sheet2" hidden><div class="w-card"><div class="w-panel p-panel s-sheet">
     <img class="w-crown" src="art/ui/crown.png" alt="">
     <div class="p-title" id="s2Title">Stars</div>
@@ -1398,6 +1422,18 @@ function starTotals(){let n=0;for(const lv of pack.levels)n+=+store.get(lvStarKe
 function showStart(){START=true;paused=true;$('start').hidden=false;$('sLv').textContent=`Level ${pack.cur+1} · ${level.name||''}`;$('sBankN').textContent=bank;$('sStarN').textContent=`${starTotals()}/${NLEV*3}`;startAnim();musicStart(false,'home')}
 function hideStart(){START=false;$('start').hidden=true;paused=false;last=performance.now()}
 $('start').addEventListener('pointerdown',()=>{audio();if(START&&musicOn!=='home')musicStart(false,'home')}); // browsers only allow sound after a touch
+// Settings popup: Music and Sound flip the Feel switches (saved with Feel); Japanese is greyed out until a translation exists.
+function stPaint(){$('stMusic').textContent=feel.music?'On':'Off';$('stMusic').classList.toggle('off',!feel.music);$('stSound').textContent=feel.sound?'On':'Off';$('stSound').classList.toggle('off',!feel.sound);
+  const r=$('stReset');r.classList.remove('sure');r.textContent='Reset progress (dev)';if(typeof syncFeel==='function')syncFeel()}
+$('sGear').onclick=e=>{e.stopPropagation();stPaint();$('settings').hidden=false};
+$('stClose').onclick=()=>{$('settings').hidden=true};
+$('settings').addEventListener('pointerdown',e=>{if(e.target.id==='settings')$('settings').hidden=true});
+$('stMusic').onclick=()=>{feel.music=feel.music?0:1;store.set('sbl_feel',feel);if(feel.music&&START)musicStart(false,'home');else if(!feel.music)musicStop();stPaint()};
+$('stSound').onclick=()=>{feel.sound=feel.sound?0:1;store.set('sbl_feel',feel);if(!feel.sound)musicStop();else{audio();if(feel.music&&START)musicStart(false,'home')}stPaint()};
+$('stReset').onclick=()=>{const r=$('stReset');if(!r.classList.contains('sure')){r.classList.add('sure');r.textContent='Tap again to wipe stars & coins';return}
+  // wipe stars, best times, paid-star bonuses and the coin bank; keep Feel settings and the level layouts
+  const ks=Object.keys(collectLocal()).filter(k=>k.startsWith('sbl_best_')||k==='sbl_bank');for(const k of ks){store.set(k,null);try{localStorage.removeItem(k)}catch(_){}}
+  bank=0;bankShown=0;bankDraw();setLevel(0);store.set('sbl_pack',pack);showStart();stPaint();toast('Progress reset')};
 $('sPlay').onclick=()=>{hideStart();audio();tries=1;startPlay()};
 function sheet2(title,html){$('s2Title').textContent=title;$('s2Body').innerHTML=html;$('sheet2').hidden=false}
 $('s2Close').onclick=()=>{$('sheet2').hidden=true};
