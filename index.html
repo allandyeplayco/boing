@@ -179,6 +179,15 @@ html.pitch #bRestart{width:42px;height:42px;padding:0;border-radius:50%;font:700
 .w-panel .w-tap{position:relative;isolation:isolate;font:700 23px/1 var(--f-display);color:#fff;background:none;padding:18px 34px 20px;
   text-shadow:0 2px 0 rgba(74,47,80,.55)}
 .w-panel .w-tap::before{content:'';position:absolute;inset:0;z-index:-1;background:url(art/ui/button.png) center/100% 100% no-repeat}
+.w-btns{display:flex;gap:8px;align-items:stretch;margin:4px 0 14px;opacity:0;pointer-events:none;transition:opacity .3s}
+.w-btns.on{opacity:1;pointer-events:auto}
+.w-btns button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border:0;padding:0 0 7px;cursor:pointer;background:center/100% 100% no-repeat;-webkit-tap-highlight-color:transparent;transition:transform .08s}
+.w-btns button:active{transform:scale(.93)}
+.w-btns .w-sq{width:68px;height:68px;background-image:url(art/ui/button-mauve.png);font:700 13px/1 var(--f-display);color:#fff;text-shadow:0 1.5px 0 rgba(74,47,80,.7)}
+.w-btns .w-sq img{width:32px;height:32px;filter:drop-shadow(0 1.5px 0 rgba(74,47,80,.5))}
+.w-btns .w-next{width:150px;height:68px;background-image:url(art/ui/button-next-gold.png);font:700 19px/1 var(--f-display);color:var(--plum);text-shadow:0 1px 0 rgba(255,255,255,.45)}
+.w-btns .w-next img{width:38px;height:auto;margin-bottom:-2px}
+.w-btns.on .w-next{animation:wpulse 1s ease-in-out infinite}
 .w-panel .w-prev{font:600 12px/1 var(--f-display);color:#7A5A7E}
 .w-best{font:700 15px/1 var(--f-display);background:var(--spring);color:#fff;padding:8px 14px;border-radius:999px;letter-spacing:.1em}
 .w-stats{display:flex;gap:4px;background:var(--ink);color:var(--paper);border-radius:14px;padding:10px 6px}
@@ -292,7 +301,7 @@ textarea{width:100%;height:180px;font:400 11px/1.4 var(--f-mono);border:2px soli
     <div class="w-stats"><div><b id="wSlams">0</b><span>slams</span></div><div><b><img src="art/ui/coin.png" alt=""><span id="wCoins">0</span></b><span>coins</span></div><div><b id="wTime">0.00</b><span>seconds</span></div></div>
     <div class="w-best" id="wBest" hidden><span class="w-spark l"><i></i><i></i></span><span class="w-spark r"><i></i><i></i></span><span id="wBestT">NEW BEST</span></div>
     <div class="w-prev" id="wPrev"></div>
-    <div class="w-tap" id="wTap">Tap to go again</div>
+    <div class="w-btns" id="wTap"><button class="w-sq" id="wHome"><img src="art/ui/icon-home.png" alt=""><span>Home</span></button><button class="w-sq" id="wReplay"><img src="art/ui/icon-replay.png" alt=""><span>Replay</span></button><button class="w-next" id="wNext"><img src="art/ui/icon-next.png" alt=""><span id="wNextT">Next Level</span></button></div>
   </div></div></div>
 
   <div id="pause" hidden><div class="w-card"><div class="w-panel p-panel">
@@ -764,7 +773,7 @@ function bankPay(stars,starEls,coinEl){
 }
 function bankSettle(){bankRun++;bankShown=bank;bankDraw();document.querySelectorAll('.fly-coin,.fly-plus').forEach(e=>e.remove())}
 function showBanner(){document.querySelectorAll('#wStars .w-twinkle').forEach(e=>e.remove());
-  $('wTap').textContent=world==='level'?`Tap for level ${(pack.cur+1)%NLEV+1}`:'Tap to go again';
+  $('wNextT').textContent=world==='level'?'Next Level':'Go again';
   const el=$('win');el.hidden=false;el.classList.remove('in');void el.offsetWidth;el.classList.add('in');$('wTap').classList.remove('on');
   const b=$('wBest'),inLevel=world==='level';
   b.hidden=!inLevel||!(win.best||win.prev==null);$('wBestT').textContent=win.best?'NEW BEST!':'FIRST CLEAR!';
@@ -1394,6 +1403,10 @@ $('sStars').onclick=()=>{const rows=pack.levels.map((lv,i)=>{const n=+store.get(
   sheet2(`Stars ${starTotals()}/${NLEV*3}`,rows);$('s2Body').querySelectorAll('.s2-row').forEach(b=>b.onclick=()=>{$('sheet2').hidden=true;setLevel(+b.dataset.i);hideStart();audio();tries=1;startPlay()})};
 $('sShop').onclick=()=>{const it=[['Jet Boost','Fly sideways until you tap',150],['Extra Bounce','One free save from a fall',80],['Golden Boing','Shiny new look',500]];
   sheet2('Shop','<div class="s2-soon">Coming soon!</div>'+it.map(([n,d,c])=>`<div class="s2-row s2-item"><span>${n}<br><small style="font-weight:600;opacity:.8">${d}</small></span><b><img src="art/ui/coin.png" alt="">${c}</b></div>`).join(''))};
+function winClose(){win=null;const wb=$('win');wb.hidden=true;wb.classList.remove('in');$('wTap').classList.remove('on');document.documentElement.classList.remove('winning')}
+$('wNext').onclick=e=>{e.stopPropagation();tap()};
+$('wReplay').onclick=e=>{e.stopPropagation();if(!win||!win.ready)return;winClose();tries=1;startPlay()};
+$('wHome').onclick=e=>{e.stopPropagation();if(!win||!win.ready)return;winClose();if(bankShown!==bank)bankSettle();showStart()};
 $('pHome').onclick=()=>{$('pause').hidden=true;showStart()};
 // Boing bouncing at the bottom of the start screen, using his pose pictures
 let sAnimOn=false,SS=null;
