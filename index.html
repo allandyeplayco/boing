@@ -284,7 +284,9 @@ const TYPES={
   spring:{name:'Spring',w:64},
   spike:{name:'Spikes',w:100,rs:true},
   coin:{name:'Coin',pt:true},
-  goal:{name:'Goal',pt:true}
+  goal:{name:'Goal',pt:true},
+  wall:{name:'Wall',w:200,rs:true},
+  elev:{name:'Elevator',w:520,rs:true}
 };
 const FEEL=[
  ['starRule','Stars are for',0,0,0,'seg'],
@@ -371,6 +373,7 @@ const CAMPAIGN=[
 {"name":"Stairway","teach":["slam"],"spawn":{"x":-140,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":760},{"id":2,"type":"plat","x":260,"y":-240,"w":700},{"id":3,"type":"coin","x":360,"y":-160},{"id":4,"type":"plat","x":660,"y":-500,"w":560},{"id":5,"type":"coin","x":740,"y":-420},{"id":6,"type":"plat","x":1020,"y":-750,"w":600},{"id":7,"type":"goal","x":1500,"y":-786},{"id":8,"type":"coin","x":1160,"y":-800},{"id":9,"type":"coin","x":1220,"y":-820},{"id":10,"type":"coin","x":1100,"y":-680}]},
 {"name":"Drop In","teach":["slam"],"spawn":{"x":-60,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":500},{"id":2,"type":"plat","x":540,"y":160,"w":140},{"id":3,"type":"coin","x":660,"y":100},{"id":4,"type":"plat","x":840,"y":-80,"w":600},{"id":5,"type":"coin","x":1020,"y":-220},{"id":6,"type":"goal","x":1380,"y":-116},{"id":7,"type":"coin","x":280,"y":-80},{"id":8,"type":"coin","x":1240,"y":-220}]},
 {"name":"Turnaround","teach":["double"],"spawn":{"x":-480,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-540,"y":20,"w":800},{"id":2,"type":"coin","x":-480,"y":-340},{"id":3,"type":"plat","x":-700,"y":-300,"w":500},{"id":4,"type":"coin","x":-420,"y":-360},{"id":5,"type":"goal","x":-680,"y":-340},{"id":6,"type":"coin","x":-380,"y":-340}]},
+{"name":"Elevator","bonus":true,"teach":[],"spawn":{"x":280,"y":-60,"dir":1},"objs":[{"id":1,"type":"wall","x":-400,"y":-2800,"w":400},{"id":2,"type":"wall","x":560,"y":-2250,"w":700},{"id":4,"type":"goal","x":1160,"y":-2286},{"id":5,"type":"coin","x":340,"y":-200},{"id":6,"type":"coin","x":410,"y":-220},{"id":7,"type":"coin","x":480,"y":-200},{"id":8,"type":"coin","x":80,"y":-500},{"id":9,"type":"coin","x":150,"y":-520},{"id":10,"type":"coin","x":220,"y":-500},{"id":11,"type":"coin","x":340,"y":-800},{"id":12,"type":"coin","x":410,"y":-820},{"id":13,"type":"coin","x":480,"y":-800},{"id":14,"type":"coin","x":80,"y":-1100},{"id":15,"type":"coin","x":150,"y":-1120},{"id":16,"type":"coin","x":220,"y":-1100},{"id":17,"type":"coin","x":340,"y":-1400},{"id":18,"type":"coin","x":410,"y":-1420},{"id":19,"type":"coin","x":480,"y":-1400},{"id":20,"type":"coin","x":80,"y":-1700},{"id":21,"type":"coin","x":150,"y":-1720},{"id":22,"type":"coin","x":220,"y":-1700},{"id":23,"type":"coin","x":340,"y":-2000},{"id":24,"type":"coin","x":410,"y":-2020},{"id":25,"type":"coin","x":480,"y":-2000},{"id":26,"type":"coin","x":700,"y":-2350},{"id":27,"type":"coin","x":800,"y":-2350},{"id":28,"type":"coin","x":900,"y":-2350},{"id":3,"type":"elev","x":0,"y":0,"w":560,"rise":2000,"spd":100}]},
 {"name":"Switchback","teach":["double"],"spawn":{"x":-200,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-300,"y":0,"w":800},{"id":2,"type":"plat","x":-560,"y":-300,"w":660},{"id":3,"type":"coin","x":-200,"y":-400},{"id":4,"type":"plat","x":-200,"y":-600,"w":660},{"id":5,"type":"coin","x":200,"y":-700},{"id":6,"type":"plat","x":-560,"y":-900,"w":660},{"id":7,"type":"goal","x":-480,"y":-936}]},
 {"name":"Breakers","teach":["smash"],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":500},{"id":2,"type":"brk","x":300,"y":0,"w":700},{"id":3,"type":"coin","x":460,"y":100},{"id":4,"type":"plat","x":300,"y":320,"w":680},{"id":5,"type":"coin","x":460,"y":200},{"id":6,"type":"goal","x":900,"y":284}]},
 {"name":"Smash Stack","teach":["smash"],"spawn":{"x":0,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-200,"y":0,"w":400},{"id":2,"type":"brk","x":200,"y":0,"w":800},{"id":3,"type":"brk","x":200,"y":200,"w":800},{"id":4,"type":"brk","x":200,"y":400,"w":800},{"id":5,"type":"coin","x":320,"y":80},{"id":6,"type":"coin","x":520,"y":320},{"id":7,"type":"plat","x":200,"y":600,"w":800},{"id":8,"type":"goal","x":900,"y":564},{"id":9,"type":"coin","x":700,"y":560}]},
@@ -387,9 +390,10 @@ const CAMPAIGN=[
 {"name":"Finale","teach":["double","tough","springslam"],"spawn":{"x":-200,"y":-60,"dir":1},"objs":[{"id":1,"type":"plat","x":-300,"y":0,"w":800},{"id":2,"type":"spike","x":500,"y":0,"w":200},{"id":3,"type":"spike","x":-720,"y":-300,"w":160},{"id":4,"type":"plat","x":-560,"y":-300,"w":660},{"id":5,"type":"plat","x":-200,"y":-600,"w":460},{"id":6,"type":"brk2","x":260,"y":-600,"w":840},{"id":7,"type":"plat","x":640,"y":-400,"w":420},{"id":8,"type":"spring","x":770,"y":-420,"w":64},{"id":9,"type":"spring","x":834,"y":-420,"w":64},{"id":10,"type":"spring","x":898,"y":-420,"w":64},{"id":11,"type":"coin","x":860,"y":-900},{"id":12,"type":"plat","x":700,"y":-1150,"w":440},{"id":13,"type":"spike","x":1140,"y":-1150,"w":160},{"id":14,"type":"plat","x":300,"y":-1450,"w":400},{"id":15,"type":"goal","x":360,"y":-1486}]}
 ];
 function starter(i){return JSON.parse(JSON.stringify(CAMPAIGN[i%CAMPAIGN.length]))}
-const NLEV=CAMPAIGN.length,CAMP_VER=2;
+const NLEV=CAMPAIGN.length,CAMP_VER=3; // 3 = Elevator bonus room after Turnaround (2026-11-16)
 // Packs from before the campaign are kept under sbl_pack_old, then replaced by the 20 levels.
-function campPack(pk){if(pk&&Array.isArray(pk.levels)&&pk.camp!==CAMP_VER){store.set('sbl_pack_old',pk);pk=null}return pk}
+function campPack(pk){if(pk&&Array.isArray(pk.levels)&&pk.camp===2&&CAMP_VER===3&&pk.levels.length===20){const i=CAMPAIGN.findIndex(l=>l.bonus);pk.levels.splice(i,0,starter(i));if(pk.cur>=i)pk.cur++;pk.camp=3;store.set('sbl_pack',pk)}
+  if(pk&&Array.isArray(pk.levels)&&pk.camp!==CAMP_VER){store.set('sbl_pack_old',pk);pk=null}return pk}
 let pack=campPack(store.get('sbl_pack'));
 if(!pack||!Array.isArray(pack.levels)){pack={cur:0,camp:CAMP_VER,levels:[]};for(let i=0;i<NLEV;i++)pack.levels.push(starter(i));store.set('sbl_pack',pack)}
 while(pack.levels.length<NLEV)pack.levels.push(starter(pack.levels.length));
@@ -705,7 +709,7 @@ function doSlamBounce(o,combo,late){
   }
   // A late tap starts from partway up the bounce. With lateFair, shave the launch so the peak matches an on-time slam.
   if(late&&feel.lateFair){const h=(o.y-R)-p.y;if(h>0)v=Math.sqrt(Math.max(0,v*v-2*feel.gravity*h))}
-  p.vy=-v;
+  p.vy=-v-elevV(o);
   let turn=turnsAt(combo), slow=false;
   if(turn&&feel.fastTurn&&combo>=2&&!(p.tapGap!=null&&p.tapGap<=feel.fastWindow)){turn=false;slow=true}
   p.lastSlamT=simT;p.tapGap=null;
@@ -732,7 +736,7 @@ function land(o){
   else{
     const prev=p.combo; p.combo=0;
     let v=feel.bounce; if(o.type==='spring'){v*=feel.springMult;springT.set(o.id,simT);if(!SIM)springHitT=simT}
-    p.vy=-v; p.squash=0.7; burst(p.x,o.y,4,C.ink3,160,4);
+    p.vy=-v-elevV(o); p.squash=0.7; burst(p.x,o.y,4,C.ink3,160,4);
     if(feel.bounceSfx){if(o.type==='spring'){if(!play('spring',0.9))sweep(220,880,0,0.28,'triangle',0.1)}else sfxSlam(1) /* Allan: normal bounces use the old slam sound */}
     p.land={t:simT,o,prev,used:false};
   }
@@ -773,23 +777,29 @@ function step(dt){
   if(p.slam&&p.wind>0){p.wind-=dt;p.vx=0;p.vy=0}
   else if(p.slam){p.vy=feel.slamSpeed;p.vx=p.dir*feel.speed*feel.drift}
   else{p.vy=Math.min(p.vy+feel.gravity*dt,3000);p.vx=p.dir*feel.speed}
-  const pb=p.y+R; p.x+=p.vx*dt; p.y+=p.vy*dt;
+  const pb=p.y+R,px0=p.x; p.x+=p.vx*dt; p.y+=p.vy*dt;
   const list=objsAround(p.x,p.y,500,500);
   if(p.vy>0){
     let best=null;const nb=p.y+R;
-    for(const o of list){if(TYPES[o.type].pt||rt.broken.has(o.id))continue;
-      if(pb<=o.y+0.5&&nb>=o.y&&p.x>=o.x-R*0.5&&p.x<=o.x+o.w+R*0.5&&(!best||o.y<best.y))best=o}
-    if(best) land(best);
+    for(let o of list){if(TYPES[o.type].pt||rt.broken.has(o.id))continue;
+      let y0=o.y;if(o.type==='elev'){const yn=elevY(o,simT);y0=elevY(o,simT-dt);o={...o,y:yn,_src:o}}
+      if(pb<=y0+0.5&&nb>=o.y&&p.x>=o.x-R*0.5&&p.x<=o.x+o.w+R*0.5&&(!best||o.y<best.y))best=o}
+    if(best){if(best.type==='elev'&&!rt.hitT.has(best.id))rt.hitT.set(best.id,simT);land(best)}
   }
   for(const o of list){
     if(o.type==='coin'&&!rt.got.has(o.id)&&Math.hypot(o.x-p.x,o.y-p.y)<R+14){rt.got.add(o.id);stats.coins++;burst(o.x,o.y,8,C.coin,260,5);sfxCoin()}
     if(o.type==='goal'&&Math.hypot(o.x-p.x,o.y-p.y)<R+26){celebrate(o);return}
   }
+  // walls stop Boing sideways (he keeps bouncing in place until a DOUBLE turns him)
+  for(const o of list){if(o.type!=='wall'||p.y+R*0.5<=o.y)continue;
+    if(p.vx>0&&px0+R<=o.x+0.5&&p.x+R>o.x)p.x=o.x-R;
+    else if(p.vx<0&&px0-R>=o.x+o.w-0.5&&p.x-R<o.x+o.w)p.x=o.x+o.w+R}
   if(p.y>lastLandY+1600) die('Fell');
   p.squash=Math.max(0,p.squash-dt*6);
   stats.best=Math.max(stats.best,(startY-(p.y+R))/40);
   // camera
-  const tx=p.x+p.dir*feel.look, ty=p.y-40;
+  let tx=p.x+p.dir*feel.look, ty=p.y-40;
+  if(world==='level')for(const o of level.objs)if(o.type==='elev'&&p.x>o.x&&p.x<o.x+o.w&&p.y<elevY(o,simT)+40){tx=o.x+o.w/2;break} // in the elevator shaft: keep the whole shaft in view
   pcam.x+=(tx-pcam.x)*(1-Math.exp(-dt*4)); pcam.y+=(ty-pcam.y)*(1-Math.exp(-dt*6));
   const s=scale(),lim=H*0.38/s; if(p.y-pcam.y>lim)pcam.y=p.y-lim; if(pcam.y-p.y>lim)pcam.y=p.y+lim;
   if(p.slam||Math.abs(p.vy)>1400){trail.push({x:p.x,y:p.y});if(trail.length>9)trail.shift()}else if(trail.length)trail.shift();
@@ -807,6 +817,8 @@ function drawObj(o,t,ghost){
   if(rt&&mode==='play'&&(rt.broken.has(o.id)||rt.got.has(o.id))) return;
   ctx.globalAlpha=ghost?0.6:1;
   switch(o.type){
+    case 'elev':drawElev(o,t);break;
+    case 'wall':
     case 'plat':
       if(paintOn()&&drawPaintedCap(o,LOOKC.get(o)==='float'?'float':'cap'))break;
       ctx.fillStyle=C.ink;rr(o.x,o.y,o.w,PH,7);ctx.fill();
@@ -969,12 +981,35 @@ function drawBall(x,y,dir,opts){
 // the walk line is pixel row 8 of every cap picture. Anchored platforms use the stone cap on a layered brick base,
 // floating ones use the plank platform. Falls back to the greybox until the pictures have loaded.
 const ART_K=0.55, ART_DIR='art/world/', ART_WALK=8;
-const WIMG={};for(const n of ['cap-left','cap-mid','cap-right','float-left','float-mid','float-right','base-mid','base-bricks','deco-banner','deco-vine','bg-far','cloud-1','cloud-2','cloud-3','brk-left','brk-mid','brk-right','brk2-left','brk2-mid','brk2-right','brk2-cracked-left','brk2-cracked-mid','brk2-cracked-right','spring','spring-squash','spikes-mid','goal-flag','coin-world','coin-spin','piece-bits']){const i=new Image();i.src=ART_DIR+n+'.png';WIMG[n]=i}
+const WIMG={};for(const n of ['cap-left','cap-mid','cap-right','float-left','float-mid','float-right','base-mid','base-bricks','deco-banner','deco-vine','bg-far','cloud-1','cloud-2','cloud-3','brk-left','brk-mid','brk-right','brk2-left','brk2-mid','brk2-right','brk2-cracked-left','brk2-cracked-mid','brk2-cracked-right','spring','spring-squash','spikes-mid','goal-flag','coin-world','coin-spin','piece-bits','elev-deck-left','elev-deck-mid','elev-deck-right','elev-rail','elev-rail-cap','elev-arrow']){const i=new Image();i.src=ART_DIR+n+'.png';WIMG[n]=i}
 const wimgOk=n=>{const i=WIMG[n];return i&&i.complete&&i.naturalWidth>0};
 const paintOn=()=>feel.art==='painted'&&wimgOk('cap-mid')&&wimgOk('base-bricks')&&wimgOk('bg-far');
 const LOOKC=new Map();
 const PAINT={fog:'#D0D8FA',skyTop:'#45CCF0',bgLow:'#CFE9EF',edge:'#2E3150'};
 let basePat=null;
+// ---------- elevator (Allan's bonus room, 2026-11-16) ----------
+// An elev piece starts at y and, once Boing first lands on it, rises 'rise' units at 'spd' units/s, then stops.
+// Its start time lives in rt.hitT so the bot's snapshots carry it. Boing's bounces off it add its speed, like a real lift.
+const ELEV_SPD=110,ELEV_RISE=2000,ELEV_K=0.4;
+function elevT(o,t){const id=o._src?o._src.id:o.id;if(!rt||!rt.hitT||!rt.hitT.has(id)||mode!=='play')return 0;return Math.max(0,t-rt.hitT.get(id))}
+function elevY(o,t){const s=o._src||o;return s.y-Math.min(s.rise??ELEV_RISE,(s.spd||ELEV_SPD)*elevT(s,t))}
+function elevV(o){if(o.type!=='elev')return 0;const s=o._src||o,id=s.id;if(!rt.hitT.has(id))return s.spd||ELEV_SPD; // first landing: it starts moving now
+  return elevY(s,simT)>s.y-(s.rise??ELEV_RISE)+0.5?(s.spd||ELEV_SPD):0}
+function drawElev(o,t){const y=elevY(o,simT),top=o.y-(o.rise??ELEV_RISE);
+  if(mode==='edit'){ctx.save();ctx.globalAlpha=0.35;ctx.setLineDash([10,8]);ctx.strokeStyle=C.accent;ctx.lineWidth=3;ctx.strokeRect(o.x,top,o.w,PH);ctx.beginPath();ctx.moveTo(o.x+o.w/2,o.y);ctx.lineTo(o.x+o.w/2,top+PH);ctx.stroke();ctx.restore()}
+  const ok=paintOn()&&wimgOk('elev-deck-mid')&&wimgOk('elev-deck-left')&&wimgOk('elev-deck-right');
+  if(!ok){ctx.fillStyle='#7A2468';rr(o.x,y,o.w,30,8);ctx.fill();ctx.fillStyle='#F7B500';rr(o.x,y,o.w,10,5);ctx.fill();return}
+  const L=WIMG['elev-deck-left'],M=WIMG['elev-deck-mid'],Rr=WIMG['elev-deck-right'],k=ELEV_K,h=L.naturalHeight*k,dy=y-10*k,sh=42*k; // the gold shoes sit on the wall faces
+  const x0=o.x-sh,x1=o.x+o.w+sh;let lw=L.naturalWidth*k,rw=Rr.naturalWidth*k;if(lw+rw>x1-x0){const f=(x1-x0)/(lw+rw);lw*=f;rw*=f}
+  const mw=M.naturalWidth*k;if(x1-rw>x0+lw){ctx.save();ctx.beginPath();ctx.rect(x0+lw-0.5,dy-2,x1-rw-x0-lw+1,h+4);ctx.clip();for(let x=x0+lw;x<x1-rw;x+=mw)ctx.drawImage(M,x,dy,mw+0.6,h);ctx.restore()}
+  ctx.drawImage(L,x0,dy,lw,h);ctx.drawImage(Rr,x1-rw,dy,rw,h);
+  if(wimgOk('elev-arrow')){const A=WIMG['elev-arrow'],moving=elevV(o)>0&&mode==='play'&&rt.hitT.has(o.id),aw=A.naturalWidth*k*0.9,ah=A.naturalHeight*k*0.9,b=moving?Math.sin(t*8)*3:0;
+    ctx.save();ctx.globalAlpha=moving?0.75+0.25*Math.sin(t*8):1;ctx.drawImage(A,o.x+o.w/2-aw/2,dy+h*0.56-ah/2+b,aw,ah);ctx.restore()}}
+// guide rails up both shaft walls, drawn behind everything
+function drawElevRails(objs){if(!paintOn()||!wimgOk('elev-rail'))return;const Rl=WIMG['elev-rail'],C2=WIMG['elev-rail-cap'],k=ELEV_K,rw=Rl.naturalWidth*k,rh=Rl.naturalHeight*k;
+  let low=-1e9;for(const o of objs)low=Math.max(low,o.y);
+  for(const o of objs){if(o.type!=='elev')continue;const top=o.y-(o.rise??ELEV_RISE)-60,bot=low+560;
+    for(const cx of [o.x,o.x+o.w]){for(let y=top;y<bot;y+=rh-0.5)ctx.drawImage(Rl,cx-rw/2,y,rw,rh+0.6);if(wimgOk('elev-rail-cap')){const ch=C2.naturalHeight*k;ctx.drawImage(C2,cx-rw/2,top-ch+1,rw,ch)}}}}
 function drawPaintedCap(o,kind){
   const L=WIMG[kind+'-left'],M=WIMG[kind+'-mid'],Rr=WIMG[kind+'-right'];if(!wimgOk(kind+'-left')||!wimgOk(kind+'-mid'))return false;
   const h=M.naturalHeight*ART_K,y=o.y-ART_WALK*ART_K;let lw=L.naturalWidth*ART_K,rw=Rr.naturalWidth*ART_K;
@@ -1005,8 +1040,8 @@ function drawPaintedStructures(objs,c,s){
   if(!basePat){basePat=ctx.createPattern(WIMG['base-bricks'],'repeat')}
   bases.sort((a,b)=>a.y-b.y);const lowB=bases.length?bases[bases.length-1].y:0;
   for(const o of bases){
-    const x0=o.x+12,x1=o.x+o.w-12,y0=o.y+14,y1=Math.min(floor,bot);if(y1<=y0||o.x>c.x+hw+40||o.x+o.w<c.x-hw-40)continue;
-    const k=Math.min(0.5,(lowB-o.y)/1300);
+    const wl=o.type==='wall',x0=wl?o.x:o.x+12,x1=wl?o.x+o.w:o.x+o.w-12,y0=o.y+14,y1=Math.min(floor,bot);if(y1<=y0||o.x>c.x+hw+40||o.x+o.w<c.x-hw-40)continue;
+    const k=wl?0:Math.min(0.5,(lowB-o.y)/1300);
     ctx.save();
     basePat.setTransform(new DOMMatrix().scale(0.7)) /* ChatGPT base-bricks.png: brick rows about 26 px, shown at 0.7 units per pixel */;ctx.fillStyle=basePat;ctx.fillRect(x0,y0,x1-x0,y1-y0);
     // decorations, picked per platform so they stay put
@@ -1054,11 +1089,12 @@ function drawPaintedBg(c,s){
 const WA={sky0:'#6FA9D6',sky1:'#BFDCEB',sky2:'#F6E7C6',haze:'#D9E3E6',far:'#B6CDDD',mid:'#A3BBCF',midD:'#97B0C6',cloud:'rgba(255,255,255,0.75)',
   base:[106,113,137],baseL:'rgba(60,66,90,0.45)',edge:'#3E445C',under:'#4A5068',cap:'#FFE6A0',capD:'#E0B85C'};
 const LOOKS=[['auto','Auto'],['base','Ground'],['float','Floating']];
-const LANDABLE={plat:1,brk:1,brk2:1,spring:1,spike:1};
+const LANDABLE={plat:1,brk:1,brk2:1,spring:1,spike:1,wall:1,elev:1};
 const artOn=()=>feel.art!=='plain';
 function overlapX(a,b,m){return a.x<b.x+b.w-m&&a.x+a.w>b.x+m}
 function lookOf(o,objs){
   if(!LANDABLE[o.type])return'none';
+  if(o.type==='wall')return'base';if(o.type==='elev')return'none';
   if(o.type==='spring'||o.type==='spike'){for(const q of objs)if(q!==o&&(q.type==='plat'||q.type==='brk'||q.type==='brk2')&&q.y>=o.y-2&&q.y<=o.y+44&&overlapX(o,q,0))return'none'}
   if(o.look==='base'||o.look==='float')return o.look;
   if(o.type!=='plat')return'float';
@@ -1180,7 +1216,7 @@ function render(){
     ctx.strokeStyle='rgba(24,35,58,0.1)';ctx.beginPath();for(let x=x0;x<c.x+hw;x+=100){ctx.moveTo(x,c.y-hh);ctx.lineTo(x,c.y+hh)}for(let y=y0;y<c.y+hh;y+=100){ctx.moveTo(c.x-hw,y);ctx.lineTo(c.x+hw,y)}ctx.stroke();
   }
   const objs=mode==='play'?objsAround(c.x,c.y,hw,hh):level.objs;
-  LOOKC.clear();if(artOn()){if(paintOn())drawPaintedStructures(objs,c,s);else drawStructures(objs,c,s)}
+  LOOKC.clear();if(artOn()){if(paintOn())drawPaintedStructures(objs,c,s);else drawStructures(objs,c,s)}if(world==='level')drawElevRails(objs);
   for(const o of objs){if(o.type!=='coin')drawObj(o,simT)}
   for(const o of objs){if(o.type==='coin')drawObj(o,simT)}
   if(mode==='edit'){
@@ -1313,7 +1349,9 @@ const ICON={
   spring:`<svg viewBox="0 0 48 28"><rect x="10" y="20" width="28" height="6" rx="2" fill="${C.paper}"/><path d="M15 20L33 16L15 12L33 8" stroke="${C.spring}" stroke-width="3" fill="none" stroke-linejoin="round"/><rect x="11" y="3" width="26" height="5" rx="2" fill="${C.spring}"/></svg>`,
   spike:`<svg viewBox="0 0 48 28"><rect x="4" y="18" width="40" height="7" rx="2" fill="${C.paper}"/><path d="M4 19L10 6L16 19L22 6L28 19L34 6L40 19L44 12V19Z" fill="${C.spike}"/></svg>`,
   coin:`<svg viewBox="0 0 48 28"><circle cx="24" cy="14" r="10" fill="${C.coin}" stroke="${C.coinD}" stroke-width="2.5"/><rect x="22.5" y="9" width="3" height="10" fill="${C.coinD}"/></svg>`,
-  goal:`<svg viewBox="0 0 48 28"><path d="M18 26V2" stroke="${C.paper}" stroke-width="3" stroke-linecap="round"/><path d="M19 3Q28 6 36 9L19 15Z" fill="${C.goal}"/></svg>`
+  goal:`<svg viewBox="0 0 48 28"><path d="M18 26V2" stroke="${C.paper}" stroke-width="3" stroke-linecap="round"/><path d="M19 3Q28 6 36 9L19 15Z" fill="${C.goal}"/></svg>`,
+  wall:`<svg viewBox="0 0 48 28"><rect x="14" y="2" width="20" height="25" rx="2" fill="${C.paper}"/><path d="M14 9H34M14 16H34M14 23H34M24 2V9M19 9V16M29 9V16M24 16V23" stroke="#9A8CC4" stroke-width="1.5"/></svg>`,
+  elev:`<svg viewBox="0 0 48 28"><rect x="4" y="2" width="3" height="25" fill="#9B3FB0"/><rect x="41" y="2" width="3" height="25" fill="#9B3FB0"/><rect x="3" y="12" width="42" height="11" rx="3" fill="#7A2468"/><rect x="3" y="11" width="42" height="4" rx="2" fill="#F7B500"/><path d="M19 21L24 16L29 21" stroke="#F7B500" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>`
 };
 const pal=$('palette');
 for(const t in TYPES){const d=document.createElement('div');d.className='pal';d.dataset.t=t;d.innerHTML=ICON[t]+`<span>${TYPES[t].name}</span>`;pal.appendChild(d);
