@@ -518,7 +518,7 @@ const FEEL=[
 ];
 const DEF={story:'first',storySpeed:1,starBonus:10,guideDouble:'rhythm',splashMin:2,guideAlways:1,music:1,musicVol:0.5,guide:1,starRule:'slams',art:'painted',anchor:'wide',bgDepth:1,gravity:2600,bounce:1000,speed:270,slamSpeed:2600,windup:0.04,slamMult:1.29,comboStep:1.06,comboMax:4,late:0.08,drift:0,springMult:1.65,brkHits:2,brkThrough:1,zoom:1,look:120,turn:'chain',shake:1,sound:1,bounceSfx:1,restartOnDeath:1,deathArc:1,phoneFrame:1,intro:'fly',goalArrow:1,skin:'spine',boingSize:1.5,poseBlend:0.08,tilt:12,squashAmt:1,showHitbox:0,fastTurn:1,fastWindow:0.28,quickTurnAny:1,turnSfx:'jingle',chainReset:1,lateFair:1,v2:1,v3:1};
 const TURNS=[['every','Every slam'],['chain','Every slam after the 1st'],['second','Every 2nd slam'],['never','Never']];
-const SEGS={story:[['first','Before level 1, first time'],['lv1','Every PLAY on level 1'],['off','Off']],guideDouble:[['rhythm','Tap-tap (one stop)'],['steps','Stop for each tap']],starRule:[['slams','Few slams'],['goals','3 goals'],['coins','Coins buy back slams']],art:[['painted','Painted (concept)'],['greybox','Greybox'],['plain','Plain (old)']],anchor:[['wide','Wide ones'],['all','All'],['none','None']],turnSfx:[['jingle','Old DOUBLE jingle'],['whoosh','Whoosh'],['blip','Small blip'],['off','Off']],intro:[['fly','Fly from flag'],['zoom','Zoom out, then in'],['off','Off']],turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
+const SEGS={story:[['first','First open (and after reset)'],['every','Every open'],['off','Off']],guideDouble:[['rhythm','Tap-tap (one stop)'],['steps','Stop for each tap']],starRule:[['slams','Few slams'],['goals','3 goals'],['coins','Coins buy back slams']],art:[['painted','Painted (concept)'],['greybox','Greybox'],['plain','Plain (old)']],anchor:[['wide','Wide ones'],['all','All'],['none','None']],turnSfx:[['jingle','Old DOUBLE jingle'],['whoosh','Whoosh'],['blip','Small blip'],['off','Off']],intro:[['fly','Fly from flag'],['zoom','Zoom out, then in'],['off','Off']],turn:TURNS,skin:[['spine','Boing (Spine)'],['boing','Boing (pictures)'],['ball','Shape']]};
 
 const MEM={};
 const CLOUD={kv:null,ready:false,booted:false,localDirty:false,timer:0,busy:false,again:false,ref:null};
@@ -1498,8 +1498,8 @@ $('stSound').onclick=()=>{feel.sound=feel.sound?0:1;store.set('sbl_feel',feel);i
 $('stReset').onclick=()=>{const r=$('stReset');if(!r.classList.contains('sure')){r.classList.add('sure');r.textContent='Tap again to wipe stars & coins';return}
   // wipe stars, best times, paid-star bonuses and the coin bank; keep Feel settings and the level layouts
   const ks=Object.keys(collectLocal()).filter(k=>k.startsWith('sbl_best_')||k==='sbl_bank'||k==='sbl_story_seen');for(const k of ks){store.set(k,null);try{localStorage.removeItem(k)}catch(_){}}
-  bank=0;bankShown=0;bankDraw();setLevel(0);store.set('sbl_pack',pack);showStart();stPaint();toast('Progress reset')};
-$('sPlay').onclick=()=>{audio();if(storyWanted()){storyPlay(()=>{hideStart();tries=1;startPlay()});return}hideStart();tries=1;startPlay()};
+  bank=0;bankShown=0;bankDraw();setLevel(0);store.set('sbl_pack',pack);showStart();stPaint();toast('Progress reset');if(storyWanted()){$('settings').hidden=true;storyPlay(null)}};
+$('sPlay').onclick=()=>{hideStart();audio();tries=1;startPlay()};
 $('stStory').onclick=()=>{$('settings').hidden=true;audio();storyPlay(null)};
 // ---------- comic intro story (Allan 2026-11-17) ----------
 // 3 pages x 2 panels (art/story/panel1-6.jpg, cut from Allan's pages). It plays itself: each panel animates in, then its
@@ -1518,7 +1518,7 @@ const STORY=[
   {panels:[
     {img:3,w:941,h:828,anim:'in-right',fx:'whoosh',
      balloon:{lines:['NO!'],fs:64,x:175,y:105,tip:[245,250],style:'shout'}},
-    {img:4,w:941,h:835,anim:'in-push',fx:'stars',hold:2.6,
+    {img:4,w:941,h:835,anim:'in-push',fx:'stars',hold:3.8,
      twinkle:[[67,12],[90,15],[47,25],[73,25],[37,30],[34,38],[50,10],[76,6]]}
   ]},
   {panels:[
@@ -1529,7 +1529,7 @@ const STORY=[
   ]}
 ];
 let STY=null;
-function storyWanted(){const m=feel.story;if(m==='off')return false;if(m==='lv1')return pack.cur===0;return pack.cur===0&&!store.get('sbl_story_seen')}
+function storyWanted(){const m=feel.story;if(m==='off')return false;if(m==='every')return true;return !store.get('sbl_story_seen')}
 function stySfx(k){if(!feel.sound)return;
   if(k==='pop'){tone(880,0,0.07,'triangle',0.1);tone(1320,0.035,0.09,'triangle',0.08)}
   else if(k==='cast'){[784,988,1175,1568,1976].forEach((f,i)=>tone(f,i*0.06,0.3,'sine',0.05))}
@@ -1580,10 +1580,10 @@ function styBurst(art,at,n){for(let i=0;i<n;i++){const s=document.createElement(
   s.style.animationDelay=(Math.random()*0.12).toFixed(2)+'s';art.appendChild(s);setTimeout(()=>s.remove(),1100)}}
 function styFlash(panel,kind){const f=document.createElement('div');f.className='sty-flash '+kind;panel.appendChild(f);setTimeout(()=>f.remove(),600)}
 // beats for one page: [time in seconds, what happens]. Reading time grows with the words in the balloon.
-function styBeats(pi){const P=STORY[pi].panels,B=[];let t=0.35;
-  P.forEach((p,k)=>{B.push([t,'panel',k,'cue:panel'+(pi*2+k+1)]);t+=p.balloon?0.75:0;
-    if(p.balloon){B.push([t,'balloon',k,'cue:line'+(pi*2+k+1)]);t+=1.1+0.06*p.balloon.lines.join(' ').length}else t+=p.hold||2;});
-  B.push([t+0.4,'end',-1]);return B}
+function styBeats(pi){const P=STORY[pi].panels,B=[];let t=0.6;
+  P.forEach((p,k)=>{B.push([t,'panel',k,'cue:panel'+(pi*2+k+1)]);t+=p.balloon?1.1:0;
+    if(p.balloon){B.push([t,'balloon',k,'cue:line'+(pi*2+k+1)]);t+=2+0.07*p.balloon.lines.join(' ').length}else t+=p.hold||3;});
+  B.push([t+0.6,'end',-1]);return B}
 function styDo(b){const [,kind,k]=b,panel=STY.page.querySelectorAll('.sty-panel')[k],p=STORY[STY.pi].panels[k];
   if(kind==='panel'){const art=panel.querySelector('.art');art.classList.add(p.anim);
     if(p.fx==='poof'){styFlash(panel,'magic');styBurst(art,p.burst,14);stySfx('poof')}
@@ -1600,9 +1600,9 @@ function styPage(pi){const stage=$('styStage'),old=STY.page;
   STORY[pi].panels.forEach((p,k)=>pg.appendChild(styPanelEl(p,pi*2+k)));stage.appendChild(pg);
   STY.pi=pi;STY.page=pg;STY.beats=styBeats(pi);STY.bi=0;STY.t=0;styLayout();
   $('styDots').querySelectorAll('i').forEach((d,i)=>d.classList.toggle('on',i<=pi))}
-function styFinish(){if(STY.end)return;STY.end=true;$('styGo').hidden=false;$('styReplay').hidden=false;$('styHint').textContent='Tap to play'}
+function styFinish(){if(STY.end)return;STY.end=true;$('styGo').hidden=false;$('styReplay').hidden=false;$('styHint').textContent='Tap to continue'}
 function styTick(now){if(!STY)return;const dt=Math.min(0.1,(now-STY.last)/1000);STY.last=now;
-  if(!STY.end){STY.t+=dt*(+feel.storySpeed||1);while(STY&&!STY.end&&STY.bi<STY.beats.length&&STY.beats[STY.bi][0]<=STY.t){const b=STY.beats[STY.bi++];styDo(b)}}
+  if(!STY.end&&!SPLASH){STY.t+=dt*(+feel.storySpeed||1);while(STY&&!STY.end&&STY.bi<STY.beats.length&&STY.beats[STY.bi][0]<=STY.t){const b=STY.beats[STY.bi++];styDo(b)}}
   if(STY)STY.raf=requestAnimationFrame(styTick)}
 function storyPlay(done){if(STY)storyClose();const el=$('story');el.hidden=false;$('styStage').innerHTML='';$('styGo').hidden=true;$('styReplay').hidden=true;$('styHint').textContent='Tap to speed up';
   STY={pi:0,page:null,beats:[],bi:0,t:0,end:false,done,last:performance.now()};styPage(0);STY.raf=requestAnimationFrame(styTick)}
@@ -2072,7 +2072,7 @@ $('bBotAll').onclick=async()=>{
 window.BOT_API={guide:lv=>{const g=guidePlan(lv,guideMoveOf(lv));return g&&g.ticks},guideFull:lv=>guidePlan(lv,guideMoveOf(lv)),searchAsync:(lv,ban,b)=>botRunAsync(botSearch(lv,ban,b||4000)),trace:botTrace,run:n=>{for(let i=0;i<n&&!win;i++)step(1/120);return{win:!!win,x:p.x,y:p.y,tries}},watch:botWatch,check:(lv,b)=>botRunSync(botCheck(lv,b)),search:(lv,ban,b)=>botRunSync(botSearch(lv,ban,b||4000)),tolerance:botTolerance,clear:()=>botCache.clear(),feel:()=>feel,setFeel:f=>{Object.assign(feel,f);botCache.clear()},campaign:()=>typeof CAMPAIGN!=='undefined'?CAMPAIGN:null};
 
 startPlay();applyDev();setMode(DEV?'edit':'play');requestAnimationFrame(frame);undoBtns();
-if(!DEV)showStart();
+if(!DEV){showStart();if(storyWanted())storyPlay(null)} // comic intro on first open, over the home screen
 splashRun();
 // hold the level name for 1 second to show or hide the dev tools (Edit, Bot, Feel, debug line)
 {let t=0;const n=$('lvName');n.addEventListener('pointerdown',()=>{clearTimeout(t);t=setTimeout(()=>{DEV=!DEV;try{localStorage.setItem('sbl_dev',DEV?'1':'0')}catch(e){}applyDev();if(!DEV&&mode!=='play')setMode('play');toast(DEV?'Dev tools on':'Dev tools hidden')},900)});
